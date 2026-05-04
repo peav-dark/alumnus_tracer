@@ -1,0 +1,66 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Announcements{% endblock %}
+
+{% block body %}
+<div class="flex justify-between items-center mb-3">
+    <h4 class="font-bold mb-0"><i class="bi bi-megaphone-fill mr-2"></i>Announcements</h4>
+    {% if is_granted('ROLE_ADMIN') %}
+        <a href="{{ path('announcement_create') }}" class="btn-norsu"><i class="bi bi-plus-lg mr-1"></i>New Announcement</a>
+    {% endif %}
+</div>
+
+{% if announcements|length == 0 %}
+    <div class="card"><div class="card-body text-center text-gray-500 py-10">
+        <i class="bi bi-megaphone text-4xl block mb-2 opacity-25"></i>
+        No announcements yet.
+    </div></div>
+{% else %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {% for a in announcements %}
+        <div class="card h-full {{ not a.isActive ? 'opacity-50' : '' }}">
+            <div class="card-body">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        {% if a.category %}
+                            <span class="badge bg-gray-100 text-gray-700 mr-1">{{ a.category }}</span>
+                        {% endif %}
+                        {% if not a.isActive %}
+                            <span class="badge badge-secondary">Draft</span>
+                        {% endif %}
+                    </div>
+                    <span class="text-gray-500 text-xs">{{ a.datePosted|date('M d, Y') }}</span>
+                </div>
+                <h5 class="font-bold mb-1">{{ a.title }}</h5>
+                <p class="text-gray-500 text-sm">{{ a.description|length > 200 ? a.description|slice(0,200) ~ '…' : a.description }}</p>
+                {% if a.eventStartAt or a.location %}
+                    <div class="text-xs text-gray-500 space-y-1 mt-3">
+                        <p class="mb-0"><span class="font-medium text-gray-700">Date:</span> {{ a.eventStartAt ? a.eventStartAt|date('M d, Y') : 'Date TBA' }}</p>
+                        <p class="mb-0"><span class="font-medium text-gray-700">Time:</span> {{ a.eventStartAt ? a.eventStartAt|date('h:i A') : 'Time TBA' }}</p>
+                        <p class="mb-0"><span class="font-medium text-gray-700">Location:</span> {{ a.location ?: 'Location TBA' }}</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-white flex justify-between items-center">
+                <span class="text-gray-500 text-xs">
+                    {% if a.postedBy %}By {{ a.postedBy.fullName }}{% endif %}
+                </span>
+                <div class="flex gap-1">
+                    <a href="{{ path('announcement_show', {id: a.id}) }}" class="icon-action icon-action-view" title="View" aria-label="View announcement">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    {% if is_granted('ROLE_ADMIN') %}
+                        <a href="{{ path('announcement_edit', {id: a.id}) }}" class="icon-action icon-action-edit" title="Edit" aria-label="Edit announcement"><i class="bi bi-pencil"></i></a>
+                        <form method="post" action="{{ path('announcement_delete', {id: a.id}) }}" class="inline"
+                              onsubmit="return confirm('Delete this announcement?')">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ a.id) }}">
+                            <button type="submit" class="icon-action icon-action-delete icon-action-btn" title="Delete" aria-label="Delete announcement"><i class="bi bi-trash"></i></button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

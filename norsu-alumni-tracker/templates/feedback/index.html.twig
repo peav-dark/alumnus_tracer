@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Alumni Feedback{% endblock %}
+
+{% block body %}
+<div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+    <h4 class="font-bold mb-0"><i class="bi bi-chat-square-text-fill mr-2"></i>Alumni Feedback</h4>
+    <div class="flex items-center gap-2 no-print">
+        <a href="{{ path('feedback_export') }}" class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-3 py-2 rounded-lg transition">
+            <i class="bi bi-file-earmark-spreadsheet"></i>Export CSV
+        </a>
+        <button onclick="window.print()" class="inline-flex items-center gap-1 bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold px-3 py-2 rounded-lg transition">
+            <i class="bi bi-printer"></i>Print
+        </button>
+    </div>
+</div>
+
+{# ── Print-only header ── #}
+<div class="hidden print-header" style="display:none">
+    <div style="text-align:center; margin-bottom:20px;">
+        <h2 style="margin:0; font-size:18pt; font-weight:bold;">Negros Oriental State University</h2>
+        <h3 style="margin:4px 0; font-size:14pt;">Alumni Feedback Summary</h3>
+        <p style="margin:4px 0; font-size:10pt; color:#555;">Total: {{ feedbacks|length }} feedback(s) | Printed on: {{ 'now'|date('F d, Y') }}</p>
+        <hr style="margin-top:10px;">
+    </div>
+</div>
+
+{% if feedbacks|length == 0 %}
+    <div class="card"><div class="card-body text-center text-gray-500 py-10">
+        <i class="bi bi-chat-dots text-4xl block mb-2 opacity-25"></i>
+        No feedback submissions yet.
+    </div></div>
+{% else %}
+    <div class="card">
+        <div class="p-0 overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+                    <tr>
+                        <th class="pl-4 py-2.5 font-semibold text-left">Alumni</th>
+                        <th class="py-2.5 font-semibold text-left">Suggestions</th>
+                        <th class="py-2.5 font-semibold text-left">Recommend?</th>
+                        <th class="py-2.5 font-semibold text-left">Date</th>
+                        <th class="text-right pr-4 py-2.5 font-semibold no-print">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for f in feedbacks %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="pl-4 py-2.5 font-semibold">{{ f.alumni ? f.alumni.fullName : 'Anonymous' }}</td>
+                        <td class="py-2.5 text-sm">{{ f.suggestions|length > 100 ? f.suggestions|slice(0,100) ~ '…' : f.suggestions ?? '—' }}</td>
+                        <td class="py-2.5">
+                            {% if f.recommendUniversity %}
+                                <span class="badge badge-employed">Yes</span>
+                            {% else %}
+                                <span class="badge badge-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2.5 text-sm">{{ f.dateSubmitted|date('M d, Y') }}</td>
+                        <td class="text-right pr-4 py-2.5 no-print">
+                            <div class="flex gap-1 justify-end">
+                                <a href="{{ path('feedback_show', {id: f.id}) }}" class="icon-action icon-action-view" title="View" aria-label="View feedback"><i class="bi bi-eye"></i></a>
+                                <form method="post" action="{{ path('feedback_delete', {id: f.id}) }}" class="inline"
+                                      onsubmit="return confirm('Delete feedback?')">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ f.id) }}">
+                                    <button type="submit" class="icon-action icon-action-delete icon-action-btn" title="Delete" aria-label="Delete feedback"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

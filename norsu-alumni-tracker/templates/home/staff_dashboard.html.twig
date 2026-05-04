@@ -1,0 +1,474 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Staff Dashboard — NORSU Alumni Tracker{% endblock %}
+
+{% block body %}
+{# ══════════════════════════════════════════════
+   WELCOME BANNER
+   ══════════════════════════════════════════════ #}
+<div class="welcome-banner mb-4" style="background-color:#1E3A8A;background-image:linear-gradient(118deg,rgba(6,24,63,0.84) 0%,rgba(13,65,120,0.66) 48%,rgba(5,150,105,0.54) 100%),url('{{ asset('images/home-hero-graduation.png') }}');background-size:cover;background-position:center;background-repeat:no-repeat;">
+    <div class="banner-main py-5">
+        <div class="flex justify-between items-center flex-wrap gap-3">
+            <div class="flex items-center gap-3">
+                <div class="user-avatar">{{ app.user.firstName|first }}{{ app.user.lastName|first }}</div>
+                <div>
+                    <h2 class="font-extrabold text-2xl mb-0"><i class="bi bi-speedometer2 mr-2"></i>Staff Dashboard</h2>
+                    <p class="opacity-90 text-sm mt-1 mb-0">Welcome back, <strong>{{ app.user.firstName }} {{ app.user.lastName }}</strong>! Here's your overview.</p>
+                </div>
+            </div>
+            <div class="flex gap-2 mt-3 md:mt-0">
+                <a href="{{ path('alumni_index') }}#addAlumniSection" class="bg-white text-gray-700 hover:bg-gray-100 px-3 py-1.5 rounded-lg text-xs font-semibold no-underline transition-colors inline-flex items-center gap-1" onclick="setTimeout(function(){var s=document.getElementById('addAlumniSection');if(s)s.classList.remove('hidden')},100)"><i class="bi bi-person-plus-fill"></i>Add Alumni</a>
+                <a href="{{ path('report_index') }}" class="border border-white text-white hover:bg-white/10 px-3 py-1.5 rounded-lg text-xs font-semibold no-underline transition-colors inline-flex items-center gap-1"><i class="bi bi-bar-chart-line"></i>Reports</a>
+            </div>
+        </div>
+    </div>
+    <div class="banner-bottom">
+        <span class="opacity-85"><i class="bi bi-calendar3 mr-1"></i>{{ 'now'|date('F d, Y') }}</span>
+        <span class="opacity-85"><i class="bi bi-clock mr-1"></i>{{ 'now'|date('h:i A') }}</span>
+        <span class="badge bg-white text-cyan-600" style="font-size:0.7rem"><i class="bi bi-person-badge-fill mr-1"></i>Staff</span>
+        <span class="ml-auto opacity-85"><i class="bi bi-people mr-1"></i>{{ totalAlumni }} alumni &middot; {{ totalUsers }} users</span>
+    </div>
+</div>
+
+{# ══════════════════════════════════════════════
+   STAT CARDS
+   ══════════════════════════════════════════════ #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+    {% set stats = [
+        {bg: '#E0F2FE', fg: '#0284C7', icon: 'bi-people-fill',       value: totalAlumni,      label: 'Total Alumni'},
+        {bg: '#D1FAE5', fg: '#059669', icon: 'bi-briefcase-fill',     value: activeJobs,       label: 'Active Jobs'},
+        {bg: '#EDE9FE', fg: '#7C3AED', icon: 'bi-graph-up',          value: employmentRate ~ '%', label: 'Employment Rate'},
+        {bg: pendingUsers > 0 ? '#FEF3C7' : '#D1FAE5', fg: pendingUsers > 0 ? '#D97706' : '#059669', icon: 'bi-hourglass-split', value: pendingUsers, label: 'Pending Verification'}
+    ] %}
+    {% for s in stats %}
+    <div class="stat-card">
+        <div class="p-4 flex items-center gap-3">
+            <div class="stat-icon" style="background:{{ s.bg }}">
+                <i class="bi {{ s.icon }} text-xl" style="color:{{ s.fg }}"></i>
+            </div>
+            <div>
+                <div class="stat-value">{{ s.value }}</div>
+                <div class="stat-label">{{ s.label }}</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{# ══════════════════════════════════════════════
+   EMPLOYMENT RATE · QUICK ACTIONS
+   ══════════════════════════════════════════════ #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
+
+    {# ── Employment Rate Donut ── #}
+    <div class="card h-full">
+        <div class="card-body text-center py-6">
+            <h6 class="uppercase text-gray-500 font-bold text-xs mb-3 tracking-wide">Employment Rate</h6>
+            <div class="relative w-[130px] h-[130px] mx-auto">
+                <svg viewBox="0 0 36 36" class="w-[130px] h-[130px]">
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none" stroke="#E5E7EB" stroke-width="2.8"/>
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none" stroke="#1E40AF" stroke-width="2.8"
+                          stroke-dasharray="{{ employmentRate }}, 100"
+                          stroke-linecap="round"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <span class="text-2xl font-extrabold text-blue-700">{{ employmentRate }}%</span>
+                </div>
+            </div>
+            <p class="text-gray-500 text-sm mt-3 mb-3">of alumni are employed or self-employed</p>
+            <div class="flex justify-center gap-6">
+                <div class="text-center">
+                    <div class="font-bold text-base text-green-600">{{ employed }}</div>
+                    <div class="text-gray-500 text-[0.7rem]">Employed</div>
+                </div>
+                <div class="text-center">
+                    <div class="font-bold text-base text-amber-500">{{ selfEmployed }}</div>
+                    <div class="text-gray-500 text-[0.7rem]">Self-Emp.</div>
+                </div>
+                <div class="text-center">
+                    <div class="font-bold text-base text-red-600">{{ unemployed }}</div>
+                    <div class="text-gray-500 text-[0.7rem]">Unemployed</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Quick Actions (2 columns spanning 2 grid cols) ── #}
+    <div class="card h-full lg:col-span-2">
+        <div class="px-4 pt-4 pb-0">
+            <h6 class="font-bold mb-0"><i class="bi bi-lightning-fill text-amber-500 mr-1"></i> Quick Actions</h6>
+        </div>
+        <div class="card-body pt-3">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {% set actions = [
+                    {path: 'alumni_index',       icon: 'bi-person-plus-fill', bg: '#D1FAE5', fg: '#059669', label: 'Add Alumni'},
+                    {path: 'alumni_index',       icon: 'bi-search',           bg: '#E0F2FE', fg: '#0284C7', label: 'Manage Alumni'},
+                    {path: 'admin_verification', icon: 'bi-patch-check-fill', bg: '#FEF3C7', fg: '#D97706', label: 'Verify Users'},
+                    {path: 'report_index',       icon: 'bi-bar-chart-line',   bg: '#EDE9FE', fg: '#7C3AED', label: 'Reports'},
+                    {path: 'job_board_create',   icon: 'bi-briefcase-fill',   bg: '#FEE2E2', fg: '#DC2626', label: 'Post Job'},
+                    {path: 'announcement_index', icon: 'bi-megaphone-fill',   bg: '#DBEAFE', fg: '#2563EB', label: 'Announcements'},
+                    {path: 'tracer_index',       icon: 'bi-clipboard-data',   bg: '#ECFDF5', fg: '#059669', label: 'Tracer Study'},
+                    {path: 'feedback_index',     icon: 'bi-chat-dots-fill',   bg: '#FCE7F3', fg: '#DB2777', label: 'Feedback'}
+                ] %}
+                {% for a in actions %}
+                <a href="{{ path(a.path) }}" class="quick-action-card">
+                    <div class="action-icon" style="background:{{ a.bg }}"><i class="bi {{ a.icon }} text-lg" style="color:{{ a.fg }}"></i></div>
+                    <div class="font-semibold text-[0.78rem]">{{ a.label }}</div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ══════════════════════════════════════════════
+   STAFF MANAGEMENT PANEL
+   ══════════════════════════════════════════════ #}
+<div class="card mb-4">
+    <div class="card-header-norsu px-4 py-3 flex items-center gap-2">
+        <i class="bi bi-kanban text-lg"></i>
+        <span class="font-bold">Staff Management Panel</span>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {# Verification Queue #}
+            <div class="staff-panel-card border-l-4 border-amber-400 rounded-lg bg-amber-50/50 p-3">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="bi bi-shield-check text-amber-600 text-lg"></i>
+                    <span class="font-semibold text-sm">Verification Queue</span>
+                </div>
+                <p class="text-2xl font-extrabold text-amber-600 mb-1">{{ pendingUsers }}</p>
+                <p class="text-xs text-gray-500 mb-2">accounts awaiting verification</p>
+                <a href="{{ path('admin_verification') }}" class="btn-warning btn-sm w-full font-semibold"><i class="bi bi-arrow-right mr-1"></i>Review Now</a>
+            </div>
+            {# Tracer Analytics #}
+            <div class="staff-panel-card border-l-4 border-green-500 rounded-lg bg-green-50/50 p-3">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="bi bi-clipboard-data text-green-600 text-lg"></i>
+                    <span class="font-semibold text-sm">Tracer Analytics</span>
+                </div>
+                <p class="text-2xl font-extrabold text-green-600 mb-1">{{ alignmentRate }}%</p>
+                <p class="text-xs text-gray-500 mb-2">job-to-degree alignment rate</p>
+                <a href="{{ path('tracer_index') }}" class="bg-green-600 hover:bg-green-700 text-white text-center py-1.5 px-3 rounded-lg text-xs font-semibold block no-underline transition-colors"><i class="bi bi-arrow-right mr-1"></i>View Analytics</a>
+            </div>
+            {# Job Board #}
+            <div class="staff-panel-card border-l-4 border-blue-600 rounded-lg bg-blue-50/50 p-3">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="bi bi-briefcase-fill text-blue-600 text-lg"></i>
+                    <span class="font-semibold text-sm">Job Board</span>
+                </div>
+                <p class="text-2xl font-extrabold text-blue-600 mb-1">{{ activeJobs }}<span class="text-xs text-gray-400 font-normal ml-1">/ {{ totalJobs }}</span></p>
+                <p class="text-xs text-gray-500 mb-2">active job postings</p>
+                <a href="{{ path('job_board_index') }}" class="btn-norsu btn-sm w-full font-semibold"><i class="bi bi-arrow-right mr-1"></i>Manage Jobs</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ══════════════════════════════════════════════
+   PENDING VERIFICATION · AUDIT ACTIVITY
+   ══════════════════════════════════════════════ #}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+
+    {# ── Pending Verification ── #}
+    <div class="card h-full">
+        <div class="flex justify-between items-center py-3 px-4">
+            <h6 class="font-bold mb-0"><i class="bi bi-hourglass-split text-amber-500 mr-1"></i> Pending Verification</h6>
+            {% if pendingUsers > 0 %}
+                <span class="badge badge-warning rounded-full">{{ pendingUsers }}</span>
+            {% else %}
+                <span class="badge badge-success rounded-full">All clear</span>
+            {% endif %}
+        </div>
+        <div class="p-0">
+            {% if pendingList|length > 0 %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+                        <tr>
+                            <th class="pl-4 py-2.5 font-semibold text-left">Name</th>
+                            <th class="py-2.5 font-semibold text-left">Email</th>
+                            <th class="py-2.5 font-semibold text-left">Registered</th>
+                            <th class="text-right pr-4 py-2.5 font-semibold">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for pUser in pendingList %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="pl-4 py-2.5 font-semibold text-sm">{{ pUser.fullName }}</td>
+                            <td class="py-2.5 text-sm text-gray-500">{{ pUser.email }}</td>
+                            <td class="py-2.5 text-sm text-gray-500">{{ pUser.dateRegistered|date('M d, Y') }}</td>
+                            <td class="text-right pr-4 py-2.5">
+                                <form method="post" action="{{ path('admin_user_approve', {id: pUser.id}) }}" class="inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('approve' ~ pUser.id) }}">
+                                    <button class="bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1"><i class="bi bi-check-lg"></i>Approve</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if pendingUsers > 5 %}
+            <div class="text-center py-2 border-t border-gray-100">
+                <a href="{{ path('admin_verification') }}" class="text-sm text-blue-700 font-semibold">View all {{ pendingUsers }} pending <i class="bi bi-arrow-right"></i></a>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="text-center text-gray-500 py-10">
+                <i class="bi bi-check-circle text-green-600 text-4xl block mb-2"></i>
+                <p class="mb-0 text-sm font-medium">No pending verifications</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ── DPA Compliance ── #}
+    <div class="card h-full">
+        <div class="dpa-card">
+            <div class="bg-gradient-dpa px-4 py-3 flex items-center gap-2 text-white rounded-t-xl">
+                <i class="bi bi-shield-lock-fill text-lg"></i>
+                <span class="font-bold">DPA Compliance</span>
+                <span class="ml-auto badge bg-white/20 text-white text-[0.65rem]">RA 10173</span>
+            </div>
+            <div class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="dpa-info-box bg-green-50 rounded-lg p-3 text-center">
+                        <i class="bi bi-check-circle-fill text-green-600 text-xl mb-1 block"></i>
+                        <div class="font-bold text-sm text-green-700">Compliant</div>
+                        <div class="text-xs text-gray-500">Data Collection</div>
+                    </div>
+                    <div class="dpa-info-box bg-blue-50 rounded-lg p-3 text-center">
+                        <i class="bi bi-lock-fill text-blue-600 text-xl mb-1 block"></i>
+                        <div class="font-bold text-sm text-blue-700">Encrypted</div>
+                        <div class="text-xs text-gray-500">Data Storage</div>
+                    </div>
+                    <div class="dpa-info-box bg-purple-50 rounded-lg p-3 text-center">
+                        <i class="bi bi-person-check-fill text-purple-600 text-xl mb-1 block"></i>
+                        <div class="font-bold text-sm text-purple-700">Role-Based</div>
+                        <div class="text-xs text-gray-500">Access Control</div>
+                    </div>
+                </div>
+                <div class="mt-3 p-3 bg-gray-50 rounded-lg text-xs text-gray-500 leading-relaxed">
+                    <i class="bi bi-info-circle text-blue-600 mr-1"></i>
+                    All alumni data is processed in compliance with the <strong>Data Privacy Act of 2012 (RA 10173)</strong>.
+                    Personal information is collected with consent and used solely for alumni tracking purposes.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ══════════════════════════════════════════════
+   RECENT ALUMNI · TOP COURSES
+   ══════════════════════════════════════════════ #}
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-4">
+
+    {# ── Recently Added Alumni ── #}
+    <div class="lg:col-span-8">
+        <div class="card h-full">
+            <div class="flex justify-between items-center py-3 px-4">
+                <h6 class="font-bold mb-0"><i class="bi bi-clock-history mr-1 text-blue-700"></i> Recently Added Alumni</h6>
+                <a href="{{ path('alumni_index') }}" class="btn-outline-norsu btn-sm">View All</a>
+            </div>
+            <div class="p-0 overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+                        <tr>
+                            <th class="pl-4 py-2.5 font-semibold text-left">Name</th>
+                            <th class="py-2.5 font-semibold text-left">Course</th>
+                            <th class="py-2.5 font-semibold text-left">Year</th>
+                            <th class="py-2.5 font-semibold text-left">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for alum in recentAlumni %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="pl-4 py-2.5">
+                                <div class="flex items-center gap-2">
+                                    <div class="mate-avatar-sm bg-blue-100 text-blue-600">{{ alum.firstName|first }}</div>
+                                    <span class="font-semibold">{{ alum.firstName }} {{ alum.lastName }}</span>
+                                </div>
+                            </td>
+                            <td class="py-2.5 text-gray-500">{{ alum.course|default('—') }}</td>
+                            <td class="py-2.5 text-gray-500">{{ alum.yearGraduated|default('—') }}</td>
+                            <td class="py-2.5">
+                                {% set empStatus = alum.employmentStatus|default('Unknown') %}
+                                <span class="badge {% if empStatus == 'Employed' %}badge-employed{% elseif empStatus == 'Self-Employed' %}badge-self-employed{% elseif empStatus == 'Unemployed' %}badge-unemployed{% else %}badge-secondary{% endif %}">
+                                    {{ empStatus }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-gray-500 py-8">
+                                <i class="bi bi-people text-4xl block mb-2 text-gray-300"></i>
+                                <p class="mb-0 text-sm">No alumni records yet</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# ── Top Courses ── #}
+    <div class="lg:col-span-4">
+        <div class="card h-full">
+            <div class="px-4 pt-4 pb-0">
+                <h6 class="font-bold mb-0"><i class="bi bi-mortarboard-fill text-blue-700 mr-1"></i> Top Courses</h6>
+            </div>
+            <div class="card-body pt-3">
+                {% if courseStats|length > 0 %}
+                    {% set maxTotal = courseStats[0].total %}
+                    {% for stat in courseStats %}
+                    <div class="{% if not loop.last %}mb-3{% endif %}">
+                        <div class="flex justify-between mb-1">
+                            <span class="font-semibold text-sm truncate mr-2">{{ stat.course }}</span>
+                            <span class="text-sm text-gray-500 shrink-0">{{ stat.total }}</span>
+                        </div>
+                        <div class="progress-wrap h-[5px]">
+                            <div class="progress-fill bg-blue-700" style="width:{{ (stat.total / maxTotal * 100)|round }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-gray-500 py-6">
+                        <i class="bi bi-mortarboard text-4xl block mb-2 text-gray-300"></i>
+                        <p class="mb-0 text-sm">No course data yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ══════════════════════════════════════════════
+   SYSTEM OVERVIEW · EMPLOYMENT BREAKDOWN
+   ══════════════════════════════════════════════ #}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+    {# ── System Overview ── #}
+    <div class="card h-full">
+        <div class="px-4 pt-4 pb-0">
+            <h6 class="font-bold mb-0"><i class="bi bi-hdd-stack mr-1 text-blue-700"></i> System Overview</h6>
+        </div>
+        <div class="card-body">
+            <div class="grid grid-cols-2 gap-3">
+                {% set overview = [
+                    {icon: 'bi-people-fill', fg: '#0284C7', value: totalAlumni, label: 'Total Alumni'},
+                    {icon: 'bi-person-check', fg: '#059669', value: totalUsers, label: 'Registered Users'},
+                    {icon: 'bi-briefcase-fill', fg: '#7C3AED', value: totalJobs, label: 'Total Jobs'},
+                    {icon: 'bi-bullseye', fg: '#DB2777', value: alignmentRate ~ '%', label: 'Alignment Rate'}
+                ] %}
+                {% for o in overview %}
+                <div class="bg-gray-50 rounded-lg p-3 text-center">
+                    <i class="bi {{ o.icon }} text-lg mb-1 block" style="color:{{ o.fg }}"></i>
+                    <div class="text-xl font-extrabold">{{ o.value }}</div>
+                    <div class="text-xs text-gray-500">{{ o.label }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {# ── Employment Breakdown ── #}
+    <div class="card h-full">
+        <div class="px-4 pt-4 pb-0">
+            <h6 class="font-bold mb-0"><i class="bi bi-pie-chart-fill mr-1 text-blue-700"></i> Employment Breakdown</h6>
+        </div>
+        <div class="card-body">
+            {% set empData = [
+                {label: 'Employed', count: employed, color: 'bg-green-600', text: 'text-green-600'},
+                {label: 'Self-Employed', count: selfEmployed, color: 'bg-amber-500', text: 'text-amber-500'},
+                {label: 'Unemployed', count: unemployed, color: 'bg-red-600', text: 'text-red-600'}
+            ] %}
+
+            {# Multi-segment progress bar #}
+            <div class="w-full bg-gray-200 rounded-full h-3 flex overflow-hidden mb-4">
+                {% if totalAlumni > 0 %}
+                    <div class="bg-green-600 h-3" style="width:{{ (employed / totalAlumni * 100)|round }}%"></div>
+                    <div class="bg-amber-500 h-3" style="width:{{ (selfEmployed / totalAlumni * 100)|round }}%"></div>
+                    <div class="bg-red-600 h-3" style="width:{{ (unemployed / totalAlumni * 100)|round }}%"></div>
+                {% endif %}
+            </div>
+
+            {% for e in empData %}
+            <div class="flex justify-between items-center {% if not loop.last %}mb-2{% endif %}">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full {{ e.color }} inline-block"></span>
+                    <span class="text-sm font-medium">{{ e.label }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-sm {{ e.text }}">{{ e.count }}</span>
+                    <span class="text-xs text-gray-400">
+                        ({{ totalAlumni > 0 ? (e.count / totalAlumni * 100)|round(1) : 0 }}%)
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="mt-3 pt-3 border-t border-gray-200 flex justify-between text-sm">
+                <span class="text-gray-500">Total Alumni Tracked</span>
+                <span class="font-bold">{{ totalAlumni }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ══════════════════════════════════════════════
+   RECENT AUDIT ACTIVITY
+   ══════════════════════════════════════════════ #}
+{% if recentAuditLogs|length > 0 %}
+<div class="card mb-4">
+    <div class="flex justify-between items-center py-3 px-4">
+        <h6 class="font-bold mb-0"><i class="bi bi-activity mr-1 text-blue-700"></i> Recent Activity</h6>
+    </div>
+    <div class="p-0 divide-y divide-gray-100">
+        {% for log in recentAuditLogs %}
+        <div class="py-3 px-4">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="badge bg-gray-100 text-gray-700 text-[0.72rem]">{{ log.action }}</span>
+                    <div class="text-gray-500 text-sm mt-1">{{ log.details|default('—') }}</div>
+                </div>
+                <span class="text-gray-500 shrink-0 ml-2 text-[0.68rem] whitespace-nowrap">{{ log.createdAt|date('M d, H:i') }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{# ══════════════════════════════════════════════
+   FOOTER
+   ══════════════════════════════════════════════ #}
+<footer class="dashboard-footer mt-4">
+    <div class="flex justify-between items-start flex-wrap gap-3">
+        <div>
+            <div class="footer-brand"><img src="{{ asset('images/norsu-logo.webp') }}" alt="NORSU" class="footer-logo mr-1">NORSU Alumni Tracker</div>
+            <p class="mb-2 max-w-[360px] text-[0.75rem]">Negros Oriental State University — Connecting alumni, tracking careers, building community.</p>
+            <div class="footer-social">
+                <a href="#"><i class="bi bi-facebook"></i></a>
+                <a href="#"><i class="bi bi-envelope-fill"></i></a>
+                <a href="#"><i class="bi bi-globe2"></i></a>
+            </div>
+        </div>
+        <div>
+            <h6 class="text-white font-semibold mb-2 text-[0.78rem]">Quick Links</h6>
+            <div class="flex flex-col gap-1 footer-links">
+                <a href="{{ path('alumni_index') }}">Manage Alumni</a>
+                <a href="{{ path('report_index') }}">Reports</a>
+                <a href="{{ path('announcement_index') }}">Announcements</a>
+            </div>
+        </div>
+    </div>
+    <div class="footer-divider"></div>
+    <div class="flex justify-between items-center flex-wrap text-[0.7rem]">
+        <span>&copy; {{ 'now'|date('Y') }} NORSU Alumni Tracker. All rights reserved.</span>
+        <span>Negros Oriental State University, Dumaguete City</span>
+    </div>
+</footer>
+{% endblock %}

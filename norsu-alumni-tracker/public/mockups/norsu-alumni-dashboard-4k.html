@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NORSU Alumni Tracking Dashboard - 4K Concept</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --norsu-navy-950: #07142f;
+            --norsu-navy-900: #0a1e47;
+            --norsu-navy-800: #12306b;
+            --norsu-navy-700: #1b428d;
+            --norsu-ice-100: #eef5ff;
+            --norsu-ice-200: #d8e6ff;
+            --norsu-ice-300: #bfd5fb;
+            --norsu-cyan: #58ccff;
+            --norsu-teal: #6cf2df;
+            --norsu-white: #ffffff;
+            --text-strong: #f5f8ff;
+            --text-soft: #aebedd;
+            --glass: rgba(255, 255, 255, 0.11);
+            --glass-strong: rgba(255, 255, 255, 0.18);
+            --border-soft: rgba(255, 255, 255, 0.24);
+            --shadow-soft: 0 22px 42px rgba(2, 11, 29, 0.35);
+            --shadow-card: 0 10px 30px rgba(0, 8, 22, 0.32);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Outfit", sans-serif;
+            color: var(--text-strong);
+            background:
+                radial-gradient(1200px 600px at 15% -10%, rgba(95, 170, 255, 0.25), transparent 70%),
+                radial-gradient(1000px 700px at 95% 20%, rgba(96, 235, 255, 0.16), transparent 72%),
+                radial-gradient(900px 500px at 55% 115%, rgba(78, 130, 255, 0.18), transparent 72%),
+                linear-gradient(165deg, var(--norsu-navy-950) 0%, var(--norsu-navy-900) 43%, #102a63 100%);
+            overflow-x: auto;
+        }
+
+        .ambient-shape {
+            position: fixed;
+            border-radius: 999px;
+            filter: blur(1px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .ambient-a {
+            width: 560px;
+            height: 560px;
+            top: -160px;
+            left: -130px;
+            background: radial-gradient(circle at 45% 40%, rgba(124, 186, 255, 0.5), rgba(124, 186, 255, 0));
+        }
+
+        .ambient-b {
+            width: 700px;
+            height: 700px;
+            right: -220px;
+            top: 60px;
+            background: radial-gradient(circle at 50% 48%, rgba(81, 230, 225, 0.28), rgba(81, 230, 225, 0));
+        }
+
+        .ambient-c {
+            width: 780px;
+            height: 780px;
+            left: 30%;
+            bottom: -420px;
+            background: radial-gradient(circle at 50% 50%, rgba(83, 132, 255, 0.32), rgba(83, 132, 255, 0));
+        }
+
+        .dashboard-shell {
+            position: relative;
+            z-index: 1;
+            width: 3840px;
+            min-height: 2160px;
+            margin: 0 auto;
+            padding: 52px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 30px;
+        }
+
+        .glass-panel {
+            background: linear-gradient(160deg, var(--glass-strong), var(--glass));
+            border: 1px solid var(--border-soft);
+            border-radius: 28px;
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .sidebar {
+            padding: 28px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.09);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .brand-mark {
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            background: linear-gradient(145deg, #5cb4ff, #88eeff);
+            box-shadow: 0 10px 28px rgba(108, 186, 255, 0.4);
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 18px;
+            letter-spacing: 0.7px;
+            line-height: 1.2;
+        }
+
+        .brand p {
+            margin: 3px 0 0;
+            color: var(--text-soft);
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 14px;
+            border-radius: 14px;
+            color: #d6e6ff;
+            text-decoration: none;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            border: 1px solid transparent;
+            transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+        }
+
+        .menu-item:hover {
+            transform: translateX(4px);
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .menu-item.active {
+            background: linear-gradient(135deg, rgba(90, 157, 255, 0.36), rgba(88, 211, 255, 0.2));
+            border-color: rgba(132, 196, 255, 0.48);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        }
+
+        .menu-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.14);
+            display: grid;
+            place-items: center;
+            font-size: 11px;
+        }
+
+        .kpi-mini {
+            margin-top: auto;
+            border-radius: 18px;
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .kpi-mini h3 {
+            margin: 0;
+            font-size: 13px;
+            color: #c4d6fb;
+            font-weight: 500;
+        }
+
+        .kpi-mini p {
+            margin: 8px 0 0;
+            font-size: 28px;
+            font-weight: 700;
+            font-family: "Space Grotesk", sans-serif;
+        }
+
+        .main {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .topbar {
+            height: 96px;
+            padding: 0 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .title-block h2 {
+            margin: 0;
+            font-size: 34px;
+            letter-spacing: 0.6px;
+            font-family: "Space Grotesk", sans-serif;
+        }
+
+        .title-block p {
+            margin: 4px 0 0;
+            color: #b8c8e8;
+            font-size: 15px;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .chip {
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #9ed3ff, #5fd0ff);
+            box-shadow: 0 12px 24px rgba(78, 176, 255, 0.45);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 22px;
+        }
+
+        .card {
+            border-radius: 24px;
+            padding: 22px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: linear-gradient(165deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.07));
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: var(--shadow-card);
+        }
+
+        .metric {
+            min-height: 180px;
+        }
+
+        .metric h4 {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 500;
+            color: #bfd1f2;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metric .value {
+            margin-top: 12px;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 50px;
+            line-height: 1;
+            font-weight: 700;
+        }
+
+        .metric .trend {
+            margin-top: 9px;
+            font-size: 14px;
+            color: #a6f2e4;
+        }
+
+        .map-card {
+            grid-column: span 8;
+            min-height: 740px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .map-card h3,
+        .bar-card h3,
+        .activity-card h3 {
+            margin: 0;
+            font-family: "Space Grotesk", sans-serif;
+            letter-spacing: 0.4px;
+            font-size: 26px;
+        }
+
+        .subtext {
+            margin-top: 6px;
+            margin-bottom: 16px;
+            color: #b7c7e5;
+            font-size: 14px;
+        }
+
+        .world-map {
+            width: 100%;
+            height: 560px;
+            border-radius: 20px;
+            background: radial-gradient(circle at 35% 30%, rgba(109, 176, 255, 0.16), rgba(255, 255, 255, 0.04));
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .world-map svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .continent {
+            fill: rgba(155, 201, 255, 0.28);
+            stroke: rgba(198, 224, 255, 0.52);
+            stroke-width: 1.1;
+        }
+
+        .map-dot {
+            fill: var(--norsu-teal);
+            stroke: rgba(255, 255, 255, 0.9);
+            stroke-width: 1.2;
+            filter: drop-shadow(0 0 9px rgba(110, 244, 223, 0.88));
+            animation: pulse 2.2s infinite;
+        }
+
+        .map-label {
+            fill: #dbeaff;
+            font-size: 11px;
+            letter-spacing: 0.4px;
+        }
+
+        .map-legend {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            background: rgba(9, 30, 72, 0.65);
+            border: 1px solid rgba(182, 214, 255, 0.32);
+            border-radius: 14px;
+            padding: 10px 12px;
+            font-size: 12px;
+            color: #d5e8ff;
+            backdrop-filter: blur(8px);
+        }
+
+        .bar-card {
+            grid-column: span 4;
+            min-height: 740px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bars {
+            margin-top: 8px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .bar-row {
+            display: grid;
+            grid-template-columns: 160px 1fr 64px;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .bar-track {
+            height: 16px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #69b8ff, #74f2df);
+            box-shadow: 0 0 18px rgba(112, 203, 255, 0.45);
+        }
+
+        .activity-card {
+            grid-column: span 7;
+            min-height: 560px;
+        }
+
+        .feed {
+            display: grid;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .feed-item {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .feed-item strong {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .feed-item span {
+            font-size: 13px;
+            color: #b7c8e8;
+        }
+
+        .badge {
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 11px;
+            letter-spacing: 0.35px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            white-space: nowrap;
+        }
+
+        .insight-card {
+            grid-column: span 5;
+            min-height: 560px;
+        }
+
+        .donut-wrap {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .donut {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: conic-gradient(#74f2df 0 62%, #66b6ff 62% 83%, #f8c66f 83% 100%);
+            position: relative;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 16px 24px rgba(8, 21, 54, 0.4);
+        }
+
+        .donut::after {
+            content: "2,418\A Tracked";
+            white-space: pre;
+            position: absolute;
+            inset: 34px;
+            border-radius: 50%;
+            background: rgba(7, 22, 52, 0.92);
+            display: grid;
+            place-items: center;
+            text-align: center;
+            line-height: 1.35;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 22px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+        }
+
+        .legend {
+            display: grid;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .legend-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: inline-block;
+        }
+
+        .row-label {
+            display: flex;
+            align-items: center;
+            color: #d8e8ff;
+        }
+
+        .footer-note {
+            margin-top: 18px;
+            color: #b7caeb;
+            font-size: 13px;
+            line-height: 1.6;
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+            padding-top: 14px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.85; }
+            50% { transform: scale(1.35); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.85; }
+        }
+
+        @media (max-width: 1600px) {
+            .dashboard-shell {
+                width: 100%;
+                min-height: auto;
+                grid-template-columns: 260px 1fr;
+                padding: 24px;
+            }
+
+            .map-card,
+            .bar-card,
+            .activity-card,
+            .insight-card {
+                min-height: auto;
+            }
+
+            .world-map {
+                height: 420px;
+            }
+        }
+
+        @media (max-width: 1080px) {
+            .dashboard-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                order: 2;
+            }
+
+            .main {
+                order: 1;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .map-card,
+            .bar-card,
+            .activity-card,
+            .insight-card,
+            .metric {
+                grid-column: span 1;
+            }
+
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+                height: auto;
+                padding: 22px;
+                gap: 14px;
+            }
+
+            .donut-wrap {
+                grid-template-columns: 1fr;
+                justify-items: center;
+            }
+
+            .bar-row {
+                grid-template-columns: 110px 1fr 52px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-shape ambient-a"></div>
+    <div class="ambient-shape ambient-b"></div>
+    <div class="ambient-shape ambient-c"></div>
+
+    <section class="dashboard-shell">
+        <aside class="sidebar glass-panel">
+            <div class="brand">
+                <div class="brand-mark" aria-hidden="true"></div>
+                <div>
+                    <h1>NORSU Alumni
+                        Command Center</h1>
+                    <p>University Tracking System</p>
+                </div>
+            </div>
+
+            <nav class="menu" aria-label="Sidebar navigation">
+                <a class="menu-item active" href="#">
+                    <span class="menu-icon">◉</span>
+                    Dashboard Overview
+                </a>
+                <a class="menu-item" href="#">
+                    <span class="menu-icon">◎</span>
+                    Alumni Directory
+                </a>
+                <a class="menu-item" href="#">
+                    <span class="menu-icon">▣</span>
+                    Employment Reports
+                </a>
+                <a class="menu-item" href="#">
+                    <span class="menu-icon">◌</span>
+                    Global Location Map
+                </a>
+                <a class="menu-item" href="#">
+                    <span class="menu-icon">▤</span>
+                    Engagement Activity
+                </a>
+                <a class="menu-item" href="#">
+                    <span class="menu-icon">◆</span>
+                    Program Analytics
+                </a>
+                <a class="menu-item" href="#">
+                    <span class="menu-icon">☰</span>
+                    Settings
+                </a>
+            </nav>
+
+            <div class="kpi-mini">
+                <h3>Realtime Online Alumni</h3>
+                <p>437</p>
+            </div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar glass-panel">
+                <div class="title-block">
+                    <h2>University Alumni Intelligence Dashboard</h2>
+                    <p>Enterprise analytics view for outcomes, migration, and post-graduation employment trends.</p>
+                </div>
+                <div class="top-actions">
+                    <span class="chip">AY 2025-2026</span>
+                    <span class="chip">Data Synced: 09:43 AM</span>
+                    <div class="avatar" title="Admin"></div>
+                </div>
+            </header>
+
+            <section class="grid" aria-label="Main dashboard metrics and panels">
+                <article class="card metric" style="grid-column: span 3;">
+                    <h4>Total Alumni Profiles</h4>
+                    <div class="value">12,486</div>
+                    <div class="trend">+8.4% from previous quarter</div>
+                </article>
+
+                <article class="card metric" style="grid-column: span 3;">
+                    <h4>Employed Graduates</h4>
+                    <div class="value">8,972</div>
+                    <div class="trend">71.8% overall employability</div>
+                </article>
+
+                <article class="card metric" style="grid-column: span 3;">
+                    <h4>Overseas Alumni</h4>
+                    <div class="value">1,764</div>
+                    <div class="trend">Strong growth in APAC and EU</div>
+                </article>
+
+                <article class="card metric" style="grid-column: span 3;">
+                    <h4>Survey Completion</h4>
+                    <div class="value">84%</div>
+                    <div class="trend">+3.1% this month</div>
+                </article>
+
+                <article class="card map-card">
+                    <h3>Global Alumni Location Tracking</h3>
+                    <p class="subtext">Live geospatial distribution of registered NORSU alumni with clustered activity markers.</p>
+
+                    <div class="world-map">
+                        <div class="map-legend">Heat Layer: Alumni Density</div>
+                        <svg viewBox="0 0 1000 500" role="img" aria-label="World map with alumni hotspots">
+                            <path class="continent" d="M81 155l56-43 65 6 44 36-10 41-49 17-43 31-33-7-31-38z"/>
+                            <path class="continent" d="M247 244l35-2 30 22 17 35-15 28-40 8-25-11-15-28z"/>
+                            <path class="continent" d="M419 133l53-23 98 11 67-8 93 18 98 37-11 55-58 13-38 35-65-2-60 20-83-11-36-22-51 7-47-24-14-36z"/>
+                            <path class="continent" d="M538 278l31-21 40 12 25 36-11 60-37 52-44-33-22-62z"/>
+                            <path class="continent" d="M772 316l50 5 28 33-16 36-37 12-30-20-8-34z"/>
+
+                            <circle class="map-dot" cx="734" cy="207" r="4"/>
+                            <circle class="map-dot" cx="759" cy="198" r="3"/>
+                            <circle class="map-dot" cx="690" cy="206" r="3"/>
+                            <circle class="map-dot" cx="579" cy="185" r="4"/>
+                            <circle class="map-dot" cx="537" cy="171" r="3"/>
+                            <circle class="map-dot" cx="307" cy="182" r="4"/>
+                            <circle class="map-dot" cx="255" cy="207" r="3"/>
+                            <circle class="map-dot" cx="812" cy="354" r="3"/>
+                            <circle class="map-dot" cx="607" cy="337" r="3"/>
+
+                            <text class="map-label" x="721" y="228">Philippines</text>
+                            <text class="map-label" x="545" y="206">Middle East</text>
+                            <text class="map-label" x="245" y="227">North America</text>
+                            <text class="map-label" x="794" y="373">Australia</text>
+                        </svg>
+                    </div>
+                </article>
+
+                <article class="card bar-card">
+                    <h3>Employment Statistics</h3>
+                    <p class="subtext">Program outcomes by primary post-graduation employment category.</p>
+
+                    <div class="bars">
+                        <div class="bar-row">
+                            <span>Full-time</span>
+                            <div class="bar-track"><div class="bar-fill" style="width: 82%"></div></div>
+                            <strong>82%</strong>
+                        </div>
+                        <div class="bar-row">
+                            <span>Contractual</span>
+                            <div class="bar-track"><div class="bar-fill" style="width: 51%"></div></div>
+                            <strong>51%</strong>
+                        </div>
+                        <div class="bar-row">
+                            <span>Self-employed</span>
+                            <div class="bar-track"><div class="bar-fill" style="width: 37%"></div></div>
+                            <strong>37%</strong>
+                        </div>
+                        <div class="bar-row">
+                            <span>Government</span>
+                            <div class="bar-track"><div class="bar-fill" style="width: 44%"></div></div>
+                            <strong>44%</strong>
+                        </div>
+                        <div class="bar-row">
+                            <span>Academia</span>
+                            <div class="bar-track"><div class="bar-fill" style="width: 28%"></div></div>
+                            <strong>28%</strong>
+                        </div>
+                        <div class="bar-row">
+                            <span>Seeking Work</span>
+                            <div class="bar-track"><div class="bar-fill" style="width: 18%"></div></div>
+                            <strong>18%</strong>
+                        </div>
+                    </div>
+
+                    <p class="footer-note">
+                        Insight: Engineering and IT programs maintain the highest full-time conversion rate. Hospitality and Agriculture tracks show increased contractual pathways in Q2.
+                    </p>
+                </article>
+
+                <article class="card activity-card">
+                    <h3>Recent Activity</h3>
+                    <p class="subtext">Latest events from profile updates, verification, and tracer submissions.</p>
+
+                    <div class="feed">
+                        <div class="feed-item">
+                            <div>
+                                <strong>Cherry Top updated employment status</strong>
+                                <span>BSIT Batch 2021 moved to Regular Employment</span>
+                            </div>
+                            <span class="badge">2m ago</span>
+                        </div>
+                        <div class="feed-item">
+                            <div>
+                                <strong>Staff verified 12 alumni records</strong>
+                                <span>Verification queue dropped to 9 pending requests</span>
+                            </div>
+                            <span class="badge">11m ago</span>
+                        </div>
+                        <div class="feed-item">
+                            <div>
+                                <strong>Tracer submission completed</strong>
+                                <span>Mechanical Engineering batch reached 91% completion</span>
+                            </div>
+                            <span class="badge">28m ago</span>
+                        </div>
+                        <div class="feed-item">
+                            <div>
+                                <strong>Overseas alumni cluster detected</strong>
+                                <span>New concentration in Singapore and UAE corridor</span>
+                            </div>
+                            <span class="badge">42m ago</span>
+                        </div>
+                        <div class="feed-item">
+                            <div>
+                                <strong>Report package exported</strong>
+                                <span>Dean dashboard requested AY 2025 employability dataset</span>
+                            </div>
+                            <span class="badge">1h ago</span>
+                        </div>
+                        <div class="feed-item">
+                            <div>
+                                <strong>Alumni profile added</strong>
+                                <span>College of Nursing added 31 new profiles this week</span>
+                            </div>
+                            <span class="badge">Today</span>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="card insight-card">
+                    <h3>Outcome Composition</h3>
+                    <p class="subtext">Current distribution of alumni outcome categories across all tracked cohorts.</p>
+
+                    <div class="donut-wrap">
+                        <div class="donut" aria-label="Outcome composition donut chart"></div>
+                        <div class="legend">
+                            <div class="legend-row">
+                                <div class="row-label"><span class="dot" style="background:#74f2df"></span>Employed</div>
+                                <strong>62%</strong>
+                            </div>
+                            <div class="legend-row">
+                                <div class="row-label"><span class="dot" style="background:#66b6ff"></span>Pursuing Studies</div>
+                                <strong>21%</strong>
+                            </div>
+                            <div class="legend-row">
+                                <div class="row-label"><span class="dot" style="background:#f8c66f"></span>Seeking Opportunities</div>
+                                <strong>17%</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="footer-note">
+                        Recommendation: prioritize internship-to-hire partnerships in programs with lower full-time conversion to improve first-year employability.
+                    </p>
+                </article>
+            </section>
+        </main>
+    </section>
+</body>
+</html>

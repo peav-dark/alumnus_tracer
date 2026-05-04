@@ -1,0 +1,208 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Reports & Analytics{% endblock %}
+
+{% block body %}
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+    <div>
+        <h4 class="font-bold mb-0"><i class="bi bi-bar-chart-fill mr-2"></i>Reports & Analytics</h4>
+        <p class="text-gray-500 text-sm mb-0">Employment statistics and graduate analytics</p>
+    </div>
+    <div class="flex gap-2">
+        {% if is_granted('ROLE_ADMIN') %}
+        <a href="{{ path('admin_analytics_hub') }}" class="btn-outline-norsu btn-sm"><i class="bi bi-grid-1x2-fill mr-1"></i>Analytics Hub</a>
+        {% endif %}
+        <a href="{{ path('report_import') }}" class="btn-norsu btn-sm"><i class="bi bi-upload mr-1"></i>Import CSV</a>
+        <a href="{{ path('report_export') }}" class="btn-norsu btn-sm"><i class="bi bi-download mr-1"></i>Export CSV</a>
+        <button onclick="window.print()" class="btn-outline-norsu btn-sm"><i class="bi bi-printer mr-1"></i>Print Report</button>
+    </div>
+</div>
+
+{# Summary Stat Cards #}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    <div class="stat-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="stat-label">Total Alumni</div>
+                <div class="stat-value">{{ totalAlumni|default(0) }}</div>
+            </div>
+            <div class="stat-icon bg-blue-100 text-norsu"><i class="bi bi-people-fill"></i></div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="stat-label">Employed</div>
+                <div class="stat-value text-green-600">{{ employed|default(0) }}</div>
+            </div>
+            <div class="stat-icon bg-green-100 text-green-600"><i class="bi bi-briefcase-fill"></i></div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="stat-label">Unemployed</div>
+                <div class="stat-value text-red-500">{{ unemployed|default(0) }}</div>
+            </div>
+            <div class="stat-icon bg-red-100 text-red-500"><i class="bi bi-x-circle-fill"></i></div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="stat-label">Employment Rate</div>
+                <div class="stat-value text-norsu">{{ employmentRate|default(0)|number_format(1) }}%</div>
+            </div>
+            <div class="stat-icon bg-blue-100 text-norsu"><i class="bi bi-graph-up-arrow"></i></div>
+        </div>
+    </div>
+</div>
+
+{# Employment Rate by Course #}
+<div class="card mb-4">
+    <div class="card-header bg-white font-semibold"><i class="bi bi-mortarboard mr-1"></i> Employment Rate by Course</div>
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+                <tr>
+                    <th class="pl-4 py-2.5 font-semibold text-left">Course</th>
+                    <th class="py-2.5 font-semibold text-left">Graduates</th>
+                    <th class="py-2.5 font-semibold text-left">Employed</th>
+                    <th class="py-2.5 font-semibold text-left">Rate</th>
+                    <th class="pr-4 py-2.5 font-semibold text-left" style="min-width:200px">Progress</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for course in courseStats|default([]) %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="pl-4 py-2.5 font-semibold">{{ course.name }}</td>
+                    <td class="py-2.5">{{ course.total }}</td>
+                    <td class="py-2.5">{{ course.employed }}</td>
+                    <td class="py-2.5 font-semibold">{{ course.rate|number_format(1) }}%</td>
+                    <td class="pr-4 py-2.5">
+                        <div class="progress-wrap h-2">
+                            <div class="progress-fill" style="width: {{ course.rate }}%; background: {{ course.rate >= 70 ? '#059669' : (course.rate >= 40 ? '#D97706' : '#EF4444') }}"></div>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-gray-500 py-6">No course data available.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+    {# Local vs Abroad #}
+    <div class="card">
+        <div class="card-header bg-white font-semibold"><i class="bi bi-globe mr-1"></i> Local vs Abroad Employment</div>
+        <div class="card-body">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="flex-1">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span>Local</span>
+                        <span class="font-bold">{{ workLocal|default(0) }}</span>
+                    </div>
+                    <div class="progress-wrap h-3">
+                        <div class="progress-fill" style="width: {{ totalAlumni > 0 ? (workLocal / totalAlumni * 100) : 0 }}%; background: #1E40AF"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="flex-1">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span>Abroad</span>
+                        <span class="font-bold">{{ workAbroad|default(0) }}</span>
+                    </div>
+                    <div class="progress-wrap h-3">
+                        <div class="progress-fill" style="width: {{ totalAlumni > 0 ? (workAbroad / totalAlumni * 100) : 0 }}%; background: #06B6D4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Job Relevance #}
+    <div class="card">
+        <div class="card-header bg-white font-semibold"><i class="bi bi-bullseye mr-1"></i> Job-Degree Relevance</div>
+        <div class="card-body">
+            {% for item in relevanceStats|default([]) %}
+            <div class="mb-3">
+                <div class="flex justify-between text-sm mb-1">
+                    <span>{{ item.label }}</span>
+                    <span class="font-bold">{{ item.count }}</span>
+                </div>
+                <div class="progress-wrap h-3">
+                    <div class="progress-fill" style="width: {{ item.percent|default(0) }}%; background: {{ loop.index == 1 ? '#059669' : (loop.index == 2 ? '#D97706' : '#EF4444') }}"></div>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-sm text-center">No relevance data available.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{# Salary Distribution #}
+<div class="card mb-4">
+    <div class="card-header bg-white font-semibold"><i class="bi bi-cash-stack mr-1"></i> Salary Distribution</div>
+    <div class="card-body">
+        {% for item in salaryStats|default([]) %}
+        <div class="mb-3">
+            <div class="flex justify-between text-sm mb-1">
+                <span>{{ item.range }}</span>
+                <span class="font-bold">{{ item.count }} <span class="text-gray-400 font-normal">({{ item.percent|default(0)|number_format(1) }}%)</span></span>
+            </div>
+            <div class="progress-wrap h-3">
+                <div class="progress-fill" style="width: {{ item.percent|default(0) }}%; background: #1E40AF"></div>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-sm text-center">No salary data available.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+    {# Graduates per Year #}
+    <div class="card">
+        <div class="card-header bg-white font-semibold"><i class="bi bi-calendar3 mr-1"></i> Graduates per Year</div>
+        <div class="card-body">
+            {% for item in yearStats|default([]) %}
+            <div class="mb-3">
+                <div class="flex justify-between text-sm mb-1">
+                    <span>{{ item.year }}</span>
+                    <span class="font-bold">{{ item.count }}</span>
+                </div>
+                <div class="progress-wrap h-3">
+                    <div class="progress-fill" style="width: {{ item.percent|default(0) }}%; background: #059669"></div>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-sm text-center">No year data available.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# Province Distribution #}
+    <div class="card">
+        <div class="card-header bg-white font-semibold"><i class="bi bi-geo-alt mr-1"></i> Province Distribution</div>
+        <div class="card-body">
+            {% for item in provinceStats|default([]) %}
+            <div class="mb-3">
+                <div class="flex justify-between text-sm mb-1">
+                    <span>{{ item.province }}</span>
+                    <span class="font-bold">{{ item.count }}</span>
+                </div>
+                <div class="progress-wrap h-3">
+                    <div class="progress-fill" style="width: {{ item.percent|default(0) }}%; background: #D97706"></div>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-sm text-center">No province data available.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

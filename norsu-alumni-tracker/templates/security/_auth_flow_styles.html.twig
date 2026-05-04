@@ -1,0 +1,252 @@
+<style>
+    .auth-flow-scene {
+        min-height: 100vh;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        font-family: Sora, Manrope, sans-serif;
+        background-color: #081845;
+        background-image:
+            linear-gradient(132deg, rgba(7, 22, 63, 0.88) 0%, rgba(12, 52, 120, 0.72) 45%, rgba(5, 132, 124, 0.62) 100%),
+            url("{{ asset('images/home-hero-graduation.png') }}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    .auth-flow-scene::before,
+    .auth-flow-scene::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .auth-flow-scene::before {
+        width: 340px;
+        height: 340px;
+        left: -160px;
+        top: 58%;
+        background: radial-gradient(circle at 50% 50%, rgba(94, 148, 255, 0.23), rgba(94, 148, 255, 0));
+    }
+
+    .auth-flow-scene::after {
+        width: 320px;
+        height: 320px;
+        right: -145px;
+        bottom: -105px;
+        background: radial-gradient(circle at 50% 50%, rgba(26, 70, 162, 0.3), rgba(26, 70, 162, 0));
+    }
+
+    .auth-flow-wrap {
+        width: min(540px, 100%);
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .auth-flow-brand {
+        text-align: center;
+        color: #f7fbff;
+    }
+
+    .auth-flow-badge {
+        width: 86px;
+        height: 86px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.94);
+        padding: 8px;
+        margin: 0 auto 0.8rem;
+        box-shadow: 0 16px 32px rgba(6, 18, 48, 0.34);
+    }
+
+    .auth-flow-badge img {
+        width: 100%;
+        height: 100%;
+        border-radius: 14px;
+        object-fit: cover;
+    }
+
+    .auth-flow-brand h1 {
+        margin: 0;
+        font-size: clamp(1.35rem, 3.6vw, 2rem);
+        font-weight: 800;
+    }
+
+    .auth-flow-brand p {
+        margin: 0.45rem 0 0;
+        color: rgba(232, 242, 255, 0.9);
+        font-size: 0.98rem;
+    }
+
+    .auth-flow-card {
+        width: 100%;
+        border-radius: 1.85rem;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.55);
+        box-shadow: 0 24px 42px rgba(3, 14, 44, 0.36);
+        padding: 1.35rem;
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+    }
+
+    .auth-flow-msg {
+        border-radius: 0.95rem;
+        padding: 0.75rem 0.85rem;
+        font-size: 0.84rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .auth-flow-msg.error {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #b91c1c;
+    }
+
+    .auth-flow-msg.success {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+    }
+
+    .auth-flow-msg.info {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1e3a8a;
+    }
+
+    .auth-flow-form .field {
+        margin-bottom: 0.85rem;
+    }
+
+    .auth-flow-label {
+        display: block;
+        margin-bottom: 0.4rem;
+        color: #3b4f6a;
+        font-weight: 700;
+        font-size: 0.86rem;
+    }
+
+    .auth-flow-input-wrap {
+        position: relative;
+    }
+
+    .auth-flow-input-wrap > i {
+        position: absolute;
+        left: 0.95rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #8ca0bb;
+    }
+
+    .auth-flow-input {
+        width: 100%;
+        height: 52px;
+        border-radius: 1.1rem;
+        border: 1px solid #d3dce8;
+        background: #f8fbff;
+        color: #122038;
+        font-size: 1rem;
+        padding: 0 1rem 0 2.65rem;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .auth-flow-input::placeholder {
+        color: #8ca0bb;
+        opacity: 1;
+    }
+
+    .auth-flow-input:focus {
+        border-color: #3f72da;
+        box-shadow: 0 0 0 3px rgba(63, 114, 218, 0.2);
+    }
+
+    .auth-flow-input-wrap .password-has-toggle {
+        padding-right: 2.8rem;
+    }
+
+    .auth-flow-input-wrap .password-toggle-btn {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 0;
+        background: transparent;
+        color: #8ba0ba;
+        font-size: 1.15rem;
+        padding: 0;
+        line-height: 1;
+    }
+
+    .auth-flow-help {
+        margin-top: 0.35rem;
+        color: #7b8da8;
+        font-size: 0.76rem;
+    }
+
+    .auth-flow-btn {
+        width: 100%;
+        border: 0;
+        border-radius: 1.1rem;
+        background: linear-gradient(100deg, #223267 0%, #1f2f61 62%, #162650 100%);
+        color: #ffffff;
+        font-size: 1.02rem;
+        font-weight: 700;
+        padding: 0.85rem 1rem;
+        box-shadow: 0 12px 22px rgba(19, 33, 74, 0.28);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .auth-flow-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 28px rgba(16, 28, 65, 0.34);
+    }
+
+    .auth-flow-link {
+        display: block;
+        margin-top: 0.95rem;
+        text-align: center;
+        color: #5d7290;
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+
+    .auth-flow-link:hover {
+        color: #32496d;
+    }
+
+    .auth-flow-back {
+        color: #f3f7ff;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1.02rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.2rem 0.25rem;
+    }
+
+    .auth-flow-back:hover {
+        color: #ffffff;
+    }
+
+    @media (max-width: 640px) {
+        .auth-flow-card {
+            border-radius: 1.6rem;
+            padding: 1.1rem;
+        }
+
+        .auth-flow-badge {
+            width: 78px;
+            height: 78px;
+        }
+    }
+</style>

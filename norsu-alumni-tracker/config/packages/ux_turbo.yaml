@@ -1,0 +1,4 @@
+# Keep CSRF stateful for login/forms to avoid token mismatch loops.
+framework:
+    csrf_protection:
+        check_header: false

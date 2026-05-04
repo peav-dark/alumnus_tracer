@@ -1,0 +1,131 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Manage Alumni — Admin{% endblock %}
+
+{% block body %}
+<div class="flex justify-between items-center mb-4">
+    <div>
+        <h4 class="font-bold mb-0 text-xl"><i class="bi bi-mortarboard-fill mr-2"></i>Manage Alumni</h4>
+        <span class="text-gray-500 text-sm">{{ totalCount }} total records</span>
+    </div>
+    <a href="{{ path('alumni_index') }}#addAlumniSection" class="btn-norsu btn-sm" onclick="setTimeout(function(){var s=document.getElementById('addAlumniSection');if(s)s.classList.remove('hidden')},100)">
+        <i class="bi bi-person-plus-fill mr-1"></i>Add New Alumni
+    </a>
+</div>
+
+{# ── Search & Filters ── #}
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+            <div class="md:col-span-6">
+                <label class="form-label font-semibold text-xs">Search</label>
+                <div class="flex">
+                    <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-50 text-gray-500 text-sm"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-input !rounded-l-none" placeholder="Name, student number, or email..." value="{{ search }}">
+                </div>
+            </div>
+            <div class="md:col-span-3">
+                <label class="form-label font-semibold text-xs">Employment Status</label>
+                <select name="status" class="form-select text-sm">
+                    <option value="">All Statuses</option>
+                    <option value="Employed" {{ filter_status == 'Employed' ? 'selected' }}>Employed</option>
+                    <option value="Unemployed" {{ filter_status == 'Unemployed' ? 'selected' }}>Unemployed</option>
+                    <option value="Self-Employed" {{ filter_status == 'Self-Employed' ? 'selected' }}>Self-Employed</option>
+                </select>
+            </div>
+            <div class="md:col-span-3 flex gap-2">
+                <button type="submit" class="btn-norsu btn-sm flex-1">
+                    <i class="bi bi-funnel mr-1"></i>Filter
+                </button>
+                <a href="{{ path('alumni_index') }}" class="btn-secondary btn-sm">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ── Alumni Table ── #}
+<div class="card">
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+                <tr>
+                    <th class="pl-4 py-3 font-semibold text-left">Name</th>
+                    <th class="py-3 font-semibold text-left">Student No.</th>
+                    <th class="py-3 font-semibold text-left">Course</th>
+                    <th class="py-3 font-semibold text-left">Year</th>
+                    <th class="py-3 font-semibold text-left">Status</th>
+                    <th class="py-3 font-semibold text-left">Province</th>
+                    <th class="text-right pr-4 py-3 font-semibold">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for alumni in alumnis %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="pl-4 py-3">
+                        <div class="font-semibold">{{ alumni.lastName }}, {{ alumni.firstName }}</div>
+                        <span class="text-gray-500 text-xs">{{ alumni.emailAddress ?? '—' }}</span>
+                    </td>
+                    <td class="py-3 text-sm">{{ alumni.studentNumber ?? '—' }}</td>
+                    <td class="py-3 text-sm">{{ alumni.course ?? '—' }}</td>
+                    <td class="py-3 text-sm">{{ alumni.yearGraduated ?? '—' }}</td>
+                    <td class="py-3">
+                        {% if alumni.employmentStatus == 'Employed' %}
+                            <span class="badge badge-employed">Employed</span>
+                        {% elseif alumni.employmentStatus == 'Unemployed' %}
+                            <span class="badge badge-unemployed">Unemployed</span>
+                        {% elseif alumni.employmentStatus == 'Self-Employed' %}
+                            <span class="badge badge-self-employed">Self-Employed</span>
+                        {% else %}
+                            <span class="badge badge-secondary">{{ alumni.employmentStatus ?? 'N/A' }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 text-sm">{{ alumni.province ?? '—' }}</td>
+                    <td class="text-right pr-4 py-3">
+                        <div class="flex justify-end gap-1">
+                            <a href="{{ path('alumni_show', {id: alumni.id}) }}" class="icon-action icon-action-view" title="View" aria-label="View alumni">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{{ path('alumni_edit', {id: alumni.id}) }}" class="icon-action icon-action-edit" title="Edit" aria-label="Edit alumni">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="post" action="{{ path('alumni_delete', {id: alumni.id}) }}" class="inline"
+                                  onsubmit="return confirm('Are you sure you want to delete this alumni record?')">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ alumni.id) }}">
+                                <button type="submit" class="icon-action icon-action-delete icon-action-btn" title="Delete" aria-label="Delete alumni">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-gray-500 py-8">
+                        {% if search or filter_status %}
+                            No alumni found matching your filters. <a href="{{ path('alumni_index') }}">Clear filters</a>
+                        {% else %}
+                            No alumni records yet. <a href="{{ path('alumni_index') }}#addAlumniSection" onclick="setTimeout(function(){var s=document.getElementById('addAlumniSection');if(s)s.classList.remove('hidden')},100)">Add the first one</a>.
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if alumnis|length > 0 %}
+<div class="text-gray-500 text-sm mt-2">
+    Showing {{ alumnis|length }} record{{ alumnis|length > 1 ? 's' : '' }}
+</div>
+{% endif %}
+
+{% include '_pagination.html.twig' with {
+    currentPage: currentPage,
+    totalPages: totalPages,
+    route: 'alumni_index',
+    routeParams: {q: search, status: filter_status}
+} %}
+{% endblock %}

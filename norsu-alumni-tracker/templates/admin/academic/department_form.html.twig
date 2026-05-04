@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ department.id ? 'Edit' : 'Create' }} Department - Admin{% endblock %}
+
+{% block body %}
+<div class="max-w-2xl">
+    <h4 class="font-bold mb-4">
+        <i class="bi bi-diagram-3 mr-2"></i>
+        {{ department.id ? 'Edit Department' : 'Create Department' }}
+    </h4>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post" class="space-y-4">
+                <input type="hidden" name="_token" value="{{ csrf_token('department_form') }}">
+                <div>
+                    <label class="form-label">College <span class="text-red-600">*</span></label>
+                    <select name="college" class="form-select" required>
+                        <option value="">Select a college…</option>
+                        {% for c in colleges %}
+                            <option value="{{ c.id }}" {% if department.college.id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label">Department Name <span class="text-red-600">*</span></label>
+                    <input type="text" name="name" value="{{ department.name }}" class="form-input" required placeholder="e.g., Computer Science">
+                </div>
+
+                <div>
+                    <label class="form-label">Code <span class="text-red-600">*</span></label>
+                    <input type="text" name="code" value="{{ department.code }}" class="form-input" required placeholder="e.g., CS" maxlength="100">
+                    <p class="text-xs text-gray-500 mt-1">Unique code to identify the department</p>
+                </div>
+
+                <div>
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-input" rows="4" placeholder="Enter department description…">{{ department.description }}</textarea>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="isActive" id="isActive" value="1" class="w-4 h-4"
+                           {% if department.isIsActive !== false %}checked{% endif %}>
+                    <label for="isActive" class="text-sm font-medium">Active Department</label>
+                </div>
+
+                <div class="flex gap-2 pt-4">
+                    <button type="submit" class="btn-norsu">
+                        <i class="bi bi-check-lg mr-1"></i>
+                        {{ department.id ? 'Update Department' : 'Create Department' }}
+                    </button>
+                    <a href="{{ path('admin_departments') }}" class="btn-secondary">
+                        <i class="bi bi-x-lg mr-1"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

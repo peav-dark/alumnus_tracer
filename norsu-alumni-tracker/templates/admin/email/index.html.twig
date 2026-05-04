@@ -1,0 +1,132 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Email Module - Admin{% endblock %}
+
+{% block body %}
+<div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900"><i class="bi bi-envelope-paper mr-2 text-blue-700"></i>Invite Drafts and Outbox</h1>
+        <p class="text-sm text-gray-500">Prepare alumni invite drafts, review recipient previews, and save communication history. This module does not send email.</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-5 lg:grid-cols-12">
+    <section class="lg:col-span-4">
+        <div class="rounded-xl border border-blue-100 bg-white shadow-sm">
+            <div class="border-b border-gray-100 px-4 py-3">
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-blue-700">Compose Draft</h2>
+            </div>
+            <div class="space-y-4 p-4">
+                {{ form_start(filterForm, { attr: { class: 'grid grid-cols-1 gap-3 md:grid-cols-12 md:items-end' } }) }}
+                    <div class="md:col-span-8">
+                        {{ form_label(filterForm.yearGraduated, null, { label_attr: { class: 'mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500' } }) }}
+                        {{ form_widget(filterForm.yearGraduated) }}
+                    </div>
+                    <div class="md:col-span-4">
+                        {{ form_widget(filterForm.filter) }}
+                    </div>
+                {{ form_end(filterForm) }}
+
+                <div class="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">
+                    <p class="font-semibold">Recipients Matched</p>
+                    <p class="mt-1 text-2xl font-extrabold leading-none">{{ recipientCount }}</p>
+                    <p class="mt-1 text-xs text-blue-700">Filter: {{ selectedYear ?? 'All years' }}</p>
+                    <p class="mt-2 text-xs text-blue-700">This screen saves drafts and recipient previews only. It does not deliver email.</p>
+                </div>
+
+                <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="font-semibold" data-email-link-mode="{{ selectedYear is not null ? 'batch' : 'general' }}">{{ registrationLinkLabel }}</p>
+                            <p class="mt-1 text-xs text-gray-500">Paste this into your draft so alumni land on the correct registration page.</p>
+                        </div>
+                        <span class="rounded-full px-2.5 py-1 text-[0.68rem] font-semibold {{ registrationLinkReady ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
+                            {{ registrationLinkReady ? 'Ready' : 'Needs QR batch' }}
+                        </span>
+                    </div>
+                    <input data-registration-link-preview type="text" readonly value="{{ registrationLink }}" class="mt-3 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700">
+                    {% if registrationLinkWarning %}
+                        <p data-registration-link-warning class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{{ registrationLinkWarning }}</p>
+                    {% endif %}
+                </div>
+
+                <form method="post" class="space-y-3">
+                    <input type="hidden" name="_token" value="{{ csrf_token('email_compose') }}">
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Subject</label>
+                        <input type="text" name="subject" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Subject line">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Message</label>
+                        <textarea name="message" rows="5" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Write your email message"></textarea>
+                    </div>
+                    <button type="submit" class="btn-norsu w-full">
+                        <i class="bi bi-save mr-1"></i>Save Draft to Outbox
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section class="lg:col-span-8 space-y-5">
+        <div class="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div class="border-b border-gray-100 px-4 py-3">
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-700">Draft Outbox</h2>
+            </div>
+            <div class="max-h-[360px] divide-y divide-gray-100 overflow-y-auto">
+                {% for item in communications %}
+                    <article class="px-4 py-3 hover:bg-gray-50 transition">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <h3 class="truncate font-semibold text-gray-900">{{ item.subject }}</h3>
+                                <p class="mt-1 line-clamp-2 text-sm text-gray-600">{{ item.message }}</p>
+                                <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                    <span class="rounded-full bg-blue-100 px-2 py-0.5 font-semibold text-blue-700">{{ item.channel|upper }}</span>
+                                    <span>{{ item.recipientCount }} recipients</span>
+                                    <span>Year: {{ item.targetYear ?? 'All years' }}</span>
+                                </div>
+                            </div>
+                            <time class="shrink-0 text-xs text-gray-400">{{ item.sentAt|date('M d, Y H:i') }}</time>
+                        </div>
+                    </article>
+                {% else %}
+                    <div class="px-4 py-10 text-center text-sm text-gray-500">
+                        <i class="bi bi-inbox text-2xl text-gray-300"></i>
+                        <p class="mt-2">No communications yet.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div class="border-b border-gray-100 px-4 py-3">
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-700">Recipient Preview</h2>
+            </div>
+            <div class="max-h-[320px] overflow-y-auto">
+                <table class="w-full text-sm">
+                    <thead class="sticky top-0 bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+                        <tr>
+                            <th class="px-4 py-2 font-semibold">Name</th>
+                            <th class="px-4 py-2 font-semibold">Email</th>
+                            <th class="px-4 py-2 font-semibold">Year</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for alumni in recipients %}
+                            <tr class="hover:bg-blue-50/40">
+                                <td class="px-4 py-2 font-medium text-gray-800">{{ alumni.lastName }}, {{ alumni.firstName }}</td>
+                                <td class="px-4 py-2 text-gray-600">{{ alumni.emailAddress }}</td>
+                                <td class="px-4 py-2 text-gray-600">{{ alumni.yearGraduated ?? 'N/A' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="3" class="px-4 py-8 text-center text-gray-500">No alumni matched this filter.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

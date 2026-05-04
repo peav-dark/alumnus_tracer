@@ -1,0 +1,167 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Alumni Networking Directory{% endblock %}
+
+{% block body %}
+<div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h4 class="font-bold mb-1"><i class="bi bi-people-fill mr-2"></i>Networking Directory</h4>
+        <p class="text-gray-500 text-sm mb-0">Connect with fellow NORSU graduates</p>
+    </div>
+    <a href="{{ path('app_profile') }}" class="btn-outline-norsu btn-sm">
+        <i class="bi bi-arrow-left mr-1"></i>Back to Profile
+    </a>
+</div>
+
+{# ── Search & Filters ── #}
+<turbo-frame id="directory-search">
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" action="{{ path('alumni_index') }}" data-turbo-frame="directory-results">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+                <div class="md:col-span-4">
+                    <label class="form-label text-sm font-semibold mb-1">Search</label>
+                    <div class="flex">
+                        <span class="flex items-center px-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg text-gray-500"><i class="bi bi-search"></i></span>
+                        <input type="text" name="q" value="{{ search }}" class="form-input rounded-l-none"
+                               placeholder="Name, job title, company...">
+                    </div>
+                </div>
+                <div class="md:col-span-3">
+                    <label class="form-label text-sm font-semibold mb-1">Course</label>
+                    <select name="course" class="form-select text-sm">
+                        <option value="">All Courses</option>
+                        {% for c in courses %}
+                            <option value="{{ c }}" {{ filterCourse == c ? 'selected' }}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="form-label text-sm font-semibold mb-1">Batch Year</label>
+                    <select name="year" class="form-select text-sm">
+                        <option value="">All Years</option>
+                        {% for y in years %}
+                            <option value="{{ y }}" {{ filterYear == y ? 'selected' }}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="md:col-span-3 flex gap-2">
+                    <button class="btn-norsu btn-sm flex-1"><i class="bi bi-funnel mr-1"></i>Filter</button>
+                    <a href="{{ path('alumni_index') }}" class="btn-secondary btn-sm flex-1 text-center">Reset</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+</turbo-frame>
+
+{# ── Results ── #}
+<turbo-frame id="directory-results">
+<p class="text-gray-500 text-sm mb-2">
+    <strong>{{ results|length }}</strong> alumni found
+    {% if filterCourse or filterYear %}
+        — filtering by
+        {% if filterCourse %}<strong>{{ filterCourse }}</strong>{% endif %}
+        {% if filterCourse and filterYear %}, {% endif %}
+        {% if filterYear %}batch <strong>{{ filterYear }}</strong>{% endif %}
+    {% endif %}
+</p>
+
+{# ── Desktop: Table View ── #}
+<div class="card hidden md:block">
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+                <tr>
+                    <th class="pl-4 py-2.5 font-semibold text-left">Name</th>
+                    <th class="py-2.5 font-semibold text-left">Course</th>
+                    <th class="py-2.5 font-semibold text-left">Year</th>
+                    <th class="py-2.5 font-semibold text-left">Current Role</th>
+                    <th class="py-2.5 font-semibold text-left">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for a in results %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="pl-4 py-2.5">
+                        <div class="flex items-center gap-2">
+                            <div class="mate-avatar-sm bg-blue-100 text-blue-600">{{ a.firstName|first|upper }}{{ a.lastName|first|upper }}</div>
+                            <div>
+                                <div class="font-semibold">{{ a.fullName }}</div>
+                                {% if a.province %}<span class="text-gray-500 text-xs"><i class="bi bi-geo-alt"></i> {{ a.province }}</span>{% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-2.5">{{ a.course ?? '—' }}</td>
+                    <td class="py-2.5">{{ a.yearGraduated ?? '—' }}</td>
+                    <td class="py-2.5">
+                        {% if a.jobTitle %}{{ a.jobTitle }}{% endif %}
+                        {% if a.jobTitle and a.companyName %}<br><span class="text-gray-500 text-xs">at {{ a.companyName }}</span>{% endif %}
+                        {% if not a.jobTitle %}—{% endif %}
+                    </td>
+                    <td class="py-2.5">
+                        {% if a.employmentStatus %}
+                        <span class="badge {{ {
+                            'Employed': 'badge-employed',
+                            'Self-Employed': 'badge-self-employed',
+                            'Unemployed': 'badge-unemployed',
+                            'Freelance': 'badge-freelance'
+                        }[a.employmentStatus] ?? 'badge-secondary' }}">
+                            {{ a.employmentStatus }}
+                        </span>
+                        {% else %}
+                            <span class="badge badge-secondary">N/A</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-gray-500 py-10">
+                        <i class="bi bi-inbox text-4xl block mb-2 opacity-25"></i>
+                        No alumni found matching your criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ── Mobile: Card View ── #}
+<div class="md:hidden">
+    {% if results|length > 0 %}
+        {% for a in results %}
+        <div class="card mb-2">
+            <div class="card-body py-3 flex items-center gap-3">
+                <div class="mate-avatar">{{ a.firstName|first|upper }}{{ a.lastName|first|upper }}</div>
+                <div class="grow min-w-0">
+                    <div class="font-semibold truncate">{{ a.fullName }}</div>
+                    <div class="text-sm text-gray-500">{{ a.course }} {{ a.yearGraduated ? "'" ~ (a.yearGraduated|slice(-2)) : '' }}</div>
+                    {% if a.jobTitle or a.companyName %}
+                    <div class="text-sm truncate">
+                        {{ a.jobTitle ?? '' }}{% if a.jobTitle and a.companyName %} at {% endif %}{{ a.companyName ?? '' }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% if a.employmentStatus %}
+                <span class="badge {{ {
+                    'Employed': 'badge-employed',
+                    'Self-Employed': 'badge-self-employed',
+                    'Unemployed': 'badge-unemployed',
+                    'Freelance': 'badge-freelance'
+                }[a.employmentStatus] ?? 'badge-secondary' }} self-start" style="font-size:0.65rem">
+                    {{ a.employmentStatus }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="text-center text-gray-500 py-10">
+            <i class="bi bi-inbox text-4xl block mb-2 opacity-25"></i>
+            No alumni found.
+        </div>
+    {% endif %}
+</div>
+</turbo-frame>
+{% endblock %}

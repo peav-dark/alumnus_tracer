@@ -1,0 +1,105 @@
+{% extends 'home/landing_layout.html.twig' %}
+
+{% block title %}{{ job.title }} — Job Opportunities{% endblock %}
+
+{% block page_content %}
+<div class="bg-blue-50 pb-14">
+    <div class="max-w-screen-xl px-8 mx-auto pt-14">
+        <div data-aos="fade-up" class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <a href="{{ path('job_board_index') }}" class="inline-flex items-center px-5 py-2.5 text-sm text-center bg-white text-gray-800 border border-gray-300 rounded-full no-underline hover:border-gray-400 transition-colors">Back to Job Opportunities</a>
+
+            {% if is_granted('ROLE_STAFF') %}
+                <div class="flex items-center gap-3">
+                    <a href="{{ path('job_board_edit', {id: job.id}) }}" class="px-5 py-2.5 text-sm text-center bg-white text-gray-800 border border-gray-300 rounded-full no-underline hover:border-gray-400 transition-colors">Edit Job</a>
+                    <form method="post" action="{{ path('job_board_delete', {id: job.id}) }}" class="inline" onsubmit="return confirm('Delete this job posting?')">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ job.id) }}">
+                        <button class="px-5 py-2.5 text-sm text-center bg-red-500 text-white rounded-full hover:bg-red-400 transition-colors">Delete</button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+
+        <div data-aos="fade-up" data-aos-delay="80" class="mt-8 bg-white shadow-xl rounded-2xl p-8">
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div>
+                    <h1 class="font-bold text-darken text-3xl">{{ job.title }}</h1>
+                    <p class="mt-2 text-lg text-gray-600">{{ job.companyName }}</p>
+
+                    <div class="mt-4 flex flex-wrap gap-2 text-sm">
+                        {% if job.employmentType %}
+                            <span class="px-3 py-1 rounded-full bg-sky-100 text-sky-700">{{ job.employmentType }}</span>
+                        {% endif %}
+                        {% if job.isActive %}
+                            <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">Active</span>
+                        {% else %}
+                            <span class="px-3 py-1 rounded-full bg-gray-200 text-gray-700">Closed</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+                {% if job.location %}
+                    <div class="border border-gray-200 rounded-xl p-4 text-center">
+                        <p class="text-xs uppercase tracking-wide text-gray-500">Location</p>
+                        <p class="mt-1 text-sm font-semibold text-darken">{{ job.location }}</p>
+                    </div>
+                {% endif %}
+                {% if job.salaryRange %}
+                    <div class="border border-gray-200 rounded-xl p-4 text-center">
+                        <p class="text-xs uppercase tracking-wide text-gray-500">Salary</p>
+                        <p class="mt-1 text-sm font-semibold text-darken">{{ job.salaryRange }}</p>
+                    </div>
+                {% endif %}
+                {% if job.industry %}
+                    <div class="border border-gray-200 rounded-xl p-4 text-center">
+                        <p class="text-xs uppercase tracking-wide text-gray-500">Industry</p>
+                        <p class="mt-1 text-sm font-semibold text-darken">{{ job.industry }}</p>
+                    </div>
+                {% endif %}
+                {% if job.relatedCourse %}
+                    <div class="border border-gray-200 rounded-xl p-4 text-center">
+                        <p class="text-xs uppercase tracking-wide text-gray-500">Target Course</p>
+                        <p class="mt-1 text-sm font-semibold text-darken">{{ job.relatedCourse }}</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if job.deadline %}
+                <div class="mt-4 rounded-xl border {{ job.deadline < date() ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50' }} px-4 py-3 text-sm {{ job.deadline < date() ? 'text-red-700' : 'text-amber-700' }}">
+                    Application deadline: {{ job.deadline|date('F d, Y') }}
+                </div>
+            {% endif %}
+
+            {% if job.description %}
+                <div class="mt-8">
+                    <h2 class="font-semibold text-darken text-xl">Description</h2>
+                    <p class="mt-3 text-gray-600 leading-relaxed whitespace-pre-line">{{ job.description }}</p>
+                </div>
+            {% endif %}
+
+            {% if job.requirements %}
+                <div class="mt-8">
+                    <h2 class="font-semibold text-darken text-xl">Requirements</h2>
+                    <p class="mt-3 text-gray-600 leading-relaxed whitespace-pre-line">{{ job.requirements }}</p>
+                </div>
+            {% endif %}
+
+            <div class="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex flex-wrap gap-3">
+                    {% if job.applicationLink %}
+                        <a href="{{ job.applicationLink }}" target="_blank" rel="noopener noreferrer" class="px-6 py-3 text-sm text-center bg-yellow-500 text-white rounded-full no-underline hover:bg-yellow-400 transition-colors">Apply Now</a>
+                    {% endif %}
+                    {% if job.contactEmail %}
+                        <a href="mailto:{{ job.contactEmail }}" class="px-6 py-3 text-sm text-center bg-white text-gray-800 border border-gray-300 rounded-full no-underline hover:border-gray-400 transition-colors">Contact Employer</a>
+                    {% endif %}
+                </div>
+
+                <p class="text-xs text-gray-500">
+                    Posted on {{ job.datePosted|date('F d, Y') }}{% if job.postedBy %} by {{ job.postedBy.fullName }}{% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Certificate of Completion</title>
+    <style>
+        @page {
+            margin: 20mm;
+        }
+
+        body {
+            margin: 0;
+            color: #1f2937;
+            font-family: "DejaVu Sans", sans-serif;
+            background: #ffffff;
+        }
+
+        .certificate {
+            border: 10px solid #0f5f4b;
+            padding: 28px 36px;
+            height: 100%;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .inner-border {
+            border: 2px solid #d4af37;
+            height: 100%;
+            padding: 26px 34px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .school-name {
+            font-size: 30px;
+            letter-spacing: 1px;
+            font-weight: 700;
+            color: #0b3d2e;
+            margin-bottom: 4px;
+        }
+
+        .school-subtitle {
+            font-size: 13px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: #4b5563;
+            margin-bottom: 34px;
+        }
+
+        .certificate-title {
+            font-size: 42px;
+            font-weight: 700;
+            color: #7a4a00;
+            margin: 0;
+        }
+
+        .completion-label {
+            margin-top: 6px;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #6b7280;
+        }
+
+        .intro {
+            margin-top: 30px;
+            font-size: 16px;
+            color: #374151;
+        }
+
+        .recipient {
+            margin: 20px 0 16px;
+            font-size: 38px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .description {
+            max-width: 900px;
+            margin: 0 auto;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #374151;
+        }
+
+        .details {
+            margin-top: 24px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .details td {
+            padding: 10px 12px;
+            font-size: 15px;
+            border-top: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .label {
+            width: 35%;
+            text-align: left;
+            font-weight: 700;
+            color: #4b5563;
+            background: #f9fafb;
+        }
+
+        .value {
+            text-align: left;
+            color: #111827;
+        }
+
+        .footer {
+            margin-top: 38px;
+            display: table;
+            width: 100%;
+        }
+
+        .signature {
+            display: table-cell;
+            width: 50%;
+            text-align: center;
+            vertical-align: bottom;
+            padding-top: 14px;
+        }
+
+        .signature-line {
+            margin: 0 auto 8px;
+            width: 280px;
+            border-top: 1px solid #374151;
+        }
+
+        .signature-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .signature-role {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .issued {
+            margin-top: 22px;
+            font-size: 12px;
+            color: #6b7280;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+<div class="certificate">
+    <div class="inner-border">
+        <div class="school-name">NEGROS ORIENTAL STATE UNIVERSITY</div>
+        <div class="school-subtitle">Graduate Tracer Survey Program</div>
+
+        <h1 class="certificate-title">Certificate</h1>
+        <div class="completion-label">of Completion</div>
+
+        <p class="intro">This certifies that</p>
+        <div class="recipient">{{ fullName }}</div>
+
+        <p class="description">
+            has successfully completed the Graduate Tracer Survey requirements.
+            This completion is recorded in the institutional alumni tracking system
+            of Negros Oriental State University.
+        </p>
+
+        <table class="details">
+            <tr>
+                <td class="label">Date of Graduation</td>
+                <td class="value">
+                    {% if graduationDate %}
+                        {{ graduationDate|date('F d, Y') }}
+                    {% else %}
+                        Not Provided
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Date of Survey Completion</td>
+                <td class="value">{{ surveyDate|date('F d, Y') }}</td>
+            </tr>
+        </table>
+
+        <div class="footer">
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div class="signature-name">University Registrar</div>
+                <div class="signature-role">Negros Oriental State University</div>
+            </div>
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div class="signature-name">Alumni Affairs Office</div>
+                <div class="signature-role">Graduate Tracer Survey Unit</div>
+            </div>
+        </div>
+
+        <div class="issued">Issued on {{ issuedAt|date('F d, Y') }}</div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,371 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}My Alumni Profile{% endblock %}
+
+{% block body %}
+{# ══════════════════════════════════════════════
+   HERO PROFILE CARD
+   ══════════════════════════════════════════════ #}
+<div class="alumni-profile-hero mb-4">
+    <div class="profile-hero-bg">
+        <div class="profile-hero-content">
+            <div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+                <div class="profile-avatar-lg">
+                    {{ alumni.firstName|first|upper }}{{ alumni.lastName|first|upper }}
+                </div>
+                <div class="grow">
+                    <h3 class="font-bold mb-1 text-white">{{ alumni.fullName }}</h3>
+                    <p class="mb-2 text-white/50">
+                        <i class="bi bi-mortarboard mr-1"></i>{{ alumni.course }} {{ alumni.yearGraduated ? "'" ~ (alumni.yearGraduated|slice(-2)) : '' }}
+                        {% if alumni.college %} &middot; {{ alumni.college }}{% endif %}
+                    </p>
+                    <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
+                        {% if alumni.employmentStatus %}
+                            {% set statusBadge = {
+                                'Employed': 'badge-employed',
+                                'Self-Employed': 'badge-self-employed',
+                                'Unemployed': 'badge-unemployed',
+                                'Freelance': 'badge-freelance'
+                            } %}
+                            <span class="badge {{ statusBadge[alumni.employmentStatus] ?? 'badge-secondary' }} px-3 py-1.5">
+                                <i class="bi bi-briefcase mr-1"></i>{{ alumni.employmentStatus }}
+                            </span>
+                        {% endif %}
+                        {% if alumni.jobTitle %}
+                            <span class="badge bg-white/20 text-white px-3 py-1.5">{{ alumni.jobTitle }}</span>
+                        {% endif %}
+                        {% if alumni.companyName %}
+                            <span class="badge bg-white/20 text-white px-3 py-1.5">
+                                <i class="bi bi-building mr-1"></i>{{ alumni.companyName }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2 self-start">
+                    <button type="button" class="border border-white/50 text-white hover:bg-white/10 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1" data-modal-target="qrModal">
+                        <i class="bi bi-qr-code"></i>QR Code
+                    </button>
+                    <a href="{{ path('alumni_edit', {id: alumni.id}) }}" class="border border-white/50 text-white hover:bg-white/10 px-3 py-1.5 rounded-lg text-xs font-semibold no-underline transition-colors inline-flex items-center gap-1">
+                        <i class="bi bi-pencil"></i>Full Edit
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="profile-hero-stats">
+            <div class="flex flex-wrap gap-3 justify-center md:justify-start">
+                <span><i class="bi bi-hash mr-1"></i>{{ alumni.studentNumber }}</span>
+                {% if alumni.contactNumber %}
+                    <span><i class="bi bi-telephone mr-1"></i>{{ alumni.contactNumber }}</span>
+                {% endif %}
+                <span><i class="bi bi-envelope mr-1"></i>{{ alumni.emailAddress }}</span>
+                {% if alumni.province %}
+                    <span><i class="bi bi-geo-alt mr-1"></i>{{ alumni.province }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+    {# ══════════════════════════════════════════════
+       LEFT COLUMN — Quick Update + Personal Info
+       ══════════════════════════════════════════════ #}
+    <div class="lg:col-span-4">
+
+        {# ── Quick Employment Editor ── #}
+        <turbo-frame id="quick-employment-editor">
+        <div class="card mb-4">
+            <div class="card-header bg-white font-semibold flex items-center">
+                <i class="bi bi-lightning-charge-fill text-amber-500 mr-2"></i>
+                Quick Employment Update
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ path('app_profile_edit') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('quick_update') }}">
+                    <div class="mb-3">
+                        <label class="form-label text-sm font-semibold">Employment Status</label>
+                        <select name="employmentStatus" class="form-select text-sm">
+                            <option value="">— Select —</option>
+                            {% for s in ['Employed', 'Self-Employed', 'Unemployed', 'Freelance'] %}
+                                <option value="{{ s }}" {{ alumni.employmentStatus == s ? 'selected' }}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-sm font-semibold">Job Title</label>
+                        <input type="text" name="jobTitle" class="form-input text-sm"
+                               value="{{ alumni.jobTitle }}" placeholder="e.g. Software Engineer">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-sm font-semibold">Company</label>
+                        <input type="text" name="companyName" class="form-input text-sm"
+                               value="{{ alumni.companyName }}" placeholder="e.g. Accenture Inc.">
+                    </div>
+                    <button type="submit" class="btn-norsu btn-sm w-full">
+                        <i class="bi bi-check-lg mr-1"></i>Update Employment
+                    </button>
+                </form>
+            </div>
+        </div>
+        </turbo-frame>
+
+        {# ── Personal Information ── #}
+        <div class="card mb-4">
+            <div class="card-header bg-white font-semibold">
+                <i class="bi bi-person mr-1"></i> Personal Info
+            </div>
+            <div class="divide-y divide-gray-100 text-sm">
+                <div class="flex justify-between px-4 py-2.5">
+                    <span class="text-gray-500">Sex</span><span>{{ alumni.sex ?? '—' }}</span>
+                </div>
+                <div class="flex justify-between px-4 py-2.5">
+                    <span class="text-gray-500">Date of Birth</span>
+                    <span>{{ alumni.dateOfBirth ? alumni.dateOfBirth|date('M d, Y') : '—' }}</span>
+                </div>
+                <div class="flex justify-between px-4 py-2.5">
+                    <span class="text-gray-500">Civil Status</span><span>{{ alumni.civilStatus ?? '—' }}</span>
+                </div>
+                <div class="flex justify-between px-4 py-2.5">
+                    <span class="text-gray-500">Address</span>
+                    <span class="text-right max-w-[60%]">{{ alumni.homeAddress ?? '—' }}</span>
+                </div>
+            </div>
+        </div>
+
+        {# ── Willingness / Contribution ── #}
+        <div class="card mb-4">
+            <div class="card-header bg-white font-semibold">
+                <i class="bi bi-heart mr-1"></i> Community
+            </div>
+            <div class="card-body text-sm space-y-2">
+                <div class="flex items-center">
+                    <i class="bi {{ alumni.recommendNorsu ? 'bi-check-circle-fill text-green-600' : 'bi-dash-circle text-gray-400' }} mr-2"></i>
+                    Recommend NORSU
+                </div>
+                <div class="flex items-center">
+                    <i class="bi {{ alumni.willingForSeminar ? 'bi-check-circle-fill text-green-600' : 'bi-dash-circle text-gray-400' }} mr-2"></i>
+                    Guest Speaker
+                </div>
+                <div class="flex items-center">
+                    <i class="bi {{ alumni.willingForDonation ? 'bi-check-circle-fill text-green-600' : 'bi-dash-circle text-gray-400' }} mr-2"></i>
+                    Donation
+                </div>
+                <div class="flex items-center">
+                    <i class="bi {{ alumni.willingForMentorship ? 'bi-check-circle-fill text-green-600' : 'bi-dash-circle text-gray-400' }} mr-2"></i>
+                    Mentorship
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ══════════════════════════════════════════════
+       RIGHT COLUMN — Academic, Employment, Career, Directory
+       ══════════════════════════════════════════════ #}
+    <div class="lg:col-span-8">
+
+        {# ── Academic Information ── #}
+        <div class="card mb-4">
+            <div class="card-header bg-white font-semibold">
+                <i class="bi bi-mortarboard mr-1"></i> Academic Information
+            </div>
+            <div class="card-body">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                    <div><span class="text-gray-500 block">Course</span><strong>{{ alumni.course ?? '—' }}</strong></div>
+                    <div><span class="text-gray-500 block">College</span><strong>{{ alumni.college ?? '—' }}</strong></div>
+                    <div><span class="text-gray-500 block">Year Graduated</span><strong>{{ alumni.yearGraduated ?? '—' }}</strong></div>
+                    <div><span class="text-gray-500 block">Degree Program</span><strong>{{ alumni.degreeProgram ?? '—' }}</strong></div>
+                    <div><span class="text-gray-500 block">Major</span><strong>{{ alumni.major ?? '—' }}</strong></div>
+                    <div><span class="text-gray-500 block">GWA</span><strong>{{ alumni.gwa ?? '—' }}</strong></div>
+                    {% if alumni.latinHonor %}
+                    <div>
+                        <span class="text-gray-500 block">Latin Honor</span>
+                        <strong class="text-green-600"><i class="bi bi-award mr-1"></i>{{ alumni.latinHonor }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if alumni.scholarshipGranted %}
+                    <div><span class="text-gray-500 block">Scholarship</span><strong>{{ alumni.scholarshipGranted }}</strong></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# ── Employment Details ── #}
+        <div class="card mb-4">
+            <div class="card-header bg-white font-semibold">
+                <i class="bi bi-briefcase mr-1"></i> Employment Details
+            </div>
+            <div class="card-body">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                    <div><span class="text-gray-500 block">Status</span><strong>{{ alumni.employmentStatus ?? '—' }}</strong></div>
+                    <div><span class="text-gray-500 block">Type</span><strong>{{ alumni.employmentType ?? '—' }}</strong></div>
+                    <div><span class="text-gray-500 block">Job Level</span><strong>{{ alumni.jobLevel ?? '—' }}</strong></div>
+                    <div><span class="text-gray-500 block">Job Title</span><strong>{{ alumni.jobTitle ?? '—' }}</strong></div>
+                    <div><span class="text-gray-500 block">Company</span><strong>{{ alumni.companyName ?? '—' }}</strong></div>
+                    <div><span class="text-gray-500 block">Industry</span><strong>{{ alumni.industry ?? '—' }}</strong></div>
+                    <div><span class="text-gray-500 block">Monthly Salary</span><strong>{{ alumni.monthlySalary ?? '—' }}</strong></div>
+                    <div>
+                        <span class="text-gray-500 block">Job Related?</span>
+                        <strong>{{ alumni.jobRelatedToCourse is null ? '—' : (alumni.jobRelatedToCourse ? 'Yes' : 'No') }}</strong>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 block">Works Abroad?</span>
+                        <strong>{{ alumni.workAbroad is null ? '—' : (alumni.workAbroad ? 'Yes' : 'No') }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ── Career & Skills ── #}
+        {% if alumni.skillsUsedInJob or alumni.certifications or alumni.licensesObtained or alumni.trainingsAttended or alumni.careerAchievements %}
+        <div class="card mb-4">
+            <div class="card-header bg-white font-semibold">
+                <i class="bi bi-graph-up-arrow mr-1"></i> Career & Skills
+            </div>
+            <div class="card-body">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    {% if alumni.skillsUsedInJob %}
+                    <div><span class="text-gray-500 block">Skills Used</span><strong>{{ alumni.skillsUsedInJob }}</strong></div>
+                    {% endif %}
+                    {% if alumni.certifications %}
+                    <div><span class="text-gray-500 block">Certifications</span><strong>{{ alumni.certifications }}</strong></div>
+                    {% endif %}
+                    {% if alumni.licensesObtained %}
+                    <div><span class="text-gray-500 block">Licenses</span><strong>{{ alumni.licensesObtained }}</strong></div>
+                    {% endif %}
+                    {% if alumni.trainingsAttended %}
+                    <div><span class="text-gray-500 block">Trainings</span><strong>{{ alumni.trainingsAttended }}</strong></div>
+                    {% endif %}
+                    {% if alumni.careerAchievements %}
+                    <div class="md:col-span-2"><span class="text-gray-500 block">Achievements</span><strong>{{ alumni.careerAchievements }}</strong></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Batch Mates ── #}
+        <div class="card mb-4">
+            <div class="flex justify-between items-center py-3 px-4 flex-wrap gap-2">
+                <span class="font-semibold"><i class="bi bi-people mr-1"></i> Batch Mates — {{ alumni.course }} {{ alumni.yearGraduated }}</span>
+                <a href="{{ path('alumni_index') }}" class="btn-outline-norsu btn-sm">
+                    <i class="bi bi-search mr-1"></i>Full Directory
+                </a>
+            </div>
+            <div class="p-0">
+                {% if batchMates|length > 0 %}
+                <div class="divide-y divide-gray-100">
+                    {% for mate in batchMates|slice(0, 8) %}
+                    <div class="flex items-center gap-3 py-3 px-4 hover:bg-gray-50 transition-colors">
+                        <div class="mate-avatar">
+                            {{ mate.firstName|first|upper }}{{ mate.lastName|first|upper }}
+                        </div>
+                        <div class="grow min-w-0">
+                            <div class="font-semibold truncate">{{ mate.fullName }}</div>
+                            <div class="text-sm text-gray-500 truncate">
+                                {% if mate.jobTitle %}{{ mate.jobTitle }}{% endif %}
+                                {% if mate.jobTitle and mate.companyName %} at {% endif %}
+                                {% if mate.companyName %}{{ mate.companyName }}{% endif %}
+                                {% if not mate.jobTitle and not mate.companyName %}{{ mate.course }}{% endif %}
+                            </div>
+                        </div>
+                        {% if mate.employmentStatus %}
+                        <span class="badge {{ {
+                            'Employed': 'badge-employed',
+                            'Self-Employed': 'badge-self-employed',
+                            'Unemployed': 'badge-unemployed',
+                            'Freelance': 'badge-freelance'
+                        }[mate.employmentStatus] ?? 'badge-secondary' }} hidden sm:inline">
+                            {{ mate.employmentStatus }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if batchMates|length > 8 %}
+                <div class="text-center py-3 border-t border-gray-100">
+                    <a href="{{ path('alumni_index') }}" class="no-underline text-sm text-blue-700 font-semibold">
+                        <i class="bi bi-arrow-right mr-1"></i>View all {{ batchMates|length }} batch mates
+                    </a>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="text-center text-gray-500 py-10">
+                    <i class="bi bi-people text-4xl block mb-2 opacity-25"></i>
+                    <p class="mb-1">No batch mates found yet.</p>
+                    <a href="{{ path('alumni_index') }}" class="text-sm text-blue-700">Browse the full directory</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ── Employment History ── #}
+        {% if alumni.employments|length > 0 %}
+        <div class="card mb-4">
+            <div class="card-header bg-white font-semibold">
+                <i class="bi bi-clock-history mr-1"></i> Employment History
+            </div>
+            <div class="card-body">
+                {% for emp in alumni.employments %}
+                <div class="{% if not loop.last %}mb-3 pb-3 border-b border-gray-200{% endif %}">
+                    <div class="flex justify-between flex-wrap">
+                        <div>
+                            <strong>{{ emp.jobTitle ?? 'Position N/A' }}</strong>
+                            <span class="text-gray-500">at {{ emp.companyName ?? 'Company N/A' }}</span>
+                        </div>
+                        <span class="badge bg-gray-100 text-gray-700 text-xs">{{ emp.employmentStatus ?? '' }}</span>
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1">
+                        {{ emp.dateHired ? emp.dateHired|date('M Y') : '?' }} — {{ emp.dateEnded ? emp.dateEnded|date('M Y') : 'Present' }}
+                        {% if emp.industry %} &middot; {{ emp.industry }}{% endif %}
+                        {% if emp.isAbroad %} &middot; <i class="bi bi-globe2"></i> {{ emp.country ?? 'Abroad' }}{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# ══════════════════════════════════════════════
+   QR CODE MODAL
+   ══════════════════════════════════════════════ #}
+<div id="qrModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="modal-backdrop-layer absolute inset-0 bg-black/50"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-xs z-10">
+        <div class="flex justify-between items-center px-4 pt-4">
+            <h6 class="font-bold">
+                <i class="bi bi-qr-code mr-1"></i>My Alumni QR Code
+            </h6>
+            <button data-modal-close class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+        </div>
+        <div class="p-4 text-center">
+            <div id="qrCodeContainer" class="mx-auto mb-3 flex items-center justify-center" style="width:200px;height:200px;">
+                 <img src="{{ qr_code_data_uri(qrData, 'default', { size: 200, margin: 2 }) }}"
+                     alt="QR code for {{ alumni.fullName }}"
+                     width="200"
+                     height="200"
+                     class="h-[200px] w-[200px] rounded-lg">
+            </div>
+            <p class="text-sm text-gray-500 mb-2">Scan to view my verified alumni profile</p>
+            <p class="font-semibold mb-1">{{ alumni.fullName }}</p>
+            <p class="text-sm text-gray-500">{{ alumni.course }} {{ alumni.yearGraduated ? "'" ~ (alumni.yearGraduated|slice(-2)) : '' }}</p>
+            <hr class="my-3 border-gray-200">
+            <button type="button" class="btn-outline-norsu btn-sm" onclick="downloadQR()">
+                <i class="bi bi-download mr-1"></i>Download QR
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+function downloadQR() {
+    const qrImage = document.querySelector('#qrCodeContainer img');
+    if (qrImage) {
+        const link = document.createElement('a');
+        link.download = 'alumni-qr-{{ alumni.fullName|replace({' ': '-'})|lower }}.png';
+        link.href = qrImage.src;
+        link.click();
+    }
+}
+</script>
+{% endblock %}

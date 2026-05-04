@@ -1,0 +1,168 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Audit Log — NORSU Alumni Tracker{% endblock %}
+
+{% block body %}
+<div class="flex justify-between items-start mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="font-bold mb-0 text-xl"><i class="bi bi-shield-lock mr-2"></i>Data Privacy Audit Log</h4>
+        <p class="text-gray-500 mb-0 text-sm">Track who accessed sensitive alumni data — per RA 10173 (Data Privacy Act of 2012).</p>
+    </div>
+    <div class="flex items-center gap-2 no-print">
+        {% if is_granted('ROLE_ADMIN') %}
+        <a href="{{ path('admin_audit_log_export', {action: filterAction, user: filterUser}) }}" class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-3 py-2 rounded-lg transition">
+            <i class="bi bi-file-earmark-spreadsheet"></i>Export CSV
+        </a>
+        <form method="post" action="{{ path('admin_audit_log_clear') }}" onsubmit="return confirm('Clear all audit logs? This cannot be undone.');">
+            <input type="hidden" name="_token" value="{{ csrf_token('audit_clear_all') }}">
+            <button type="submit" class="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-3 py-2 rounded-lg transition">
+                <i class="bi bi-trash3"></i>Clear Logs
+            </button>
+        </form>
+        {% endif %}
+        <button onclick="window.print()" class="inline-flex items-center gap-1 bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold px-3 py-2 rounded-lg transition">
+            <i class="bi bi-printer"></i>Print
+        </button>
+        <span class="badge badge-info"><i class="bi bi-lock mr-1"></i>{{ is_granted('ROLE_ADMIN') ? 'Admin Access' : 'Staff View' }}</span>
+    </div>
+</div>
+
+{# ── Print-only header ── #}
+<div class="hidden print-header" style="display:none">
+    <div style="text-align:center; margin-bottom:20px;">
+        <h2 style="margin:0; font-size:18pt; font-weight:bold;">Negros Oriental State University</h2>
+        <h3 style="margin:4px 0; font-size:14pt;">Data Privacy Audit Log</h3>
+        <p style="margin:4px 0; font-size:10pt; color:#555;">
+            Printed on: {{ 'now'|date('F d, Y') }}
+            {% if filterAction %} | Action: {{ filterAction|replace({'_': ' '})|capitalize }}{% endif %}
+        </p>
+        <hr style="margin-top:10px;">
+    </div>
+</div>
+
+{# ── Filters ── #}
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" action="{{ path('admin_audit_log') }}" class="flex flex-wrap gap-2 items-end">
+            <div>
+                <label class="form-label font-semibold text-xs">Action</label>
+                <select name="action" class="form-select text-sm min-w-[180px]">
+                    <option value="">All Actions</option>
+                    {% for a in actions %}
+                        <option value="{{ a }}" {{ filterAction == a ? 'selected' : '' }}>
+                            {{ a|replace({'_': ' '})|capitalize }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label font-semibold text-xs">Performed By</label>
+                <select name="user" class="form-select text-sm min-w-[180px]">
+                    <option value="">All Staff/Admin</option>
+                    {% for u in staffUsers %}
+                        <option value="{{ u.id }}" {{ filterUser == u.id ~ '' ? 'selected' : '' }}>
+                            {{ u.fullName }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn-norsu btn-sm font-semibold"><i class="bi bi-funnel mr-1"></i>Filter</button>
+                {% if filterAction or filterUser %}
+                    <a href="{{ path('admin_audit_log') }}" class="btn-secondary btn-sm">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ── Log Table ── #}
+<div class="card">
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+                <tr>
+                    <th class="pl-4 py-3 font-semibold text-left" style="width:160px">Timestamp</th>
+                    <th class="py-3 font-semibold text-left">Performed By</th>
+                    <th class="py-3 font-semibold text-left">Action</th>
+                    <th class="py-3 font-semibold text-left">Entity</th>
+                    <th class="py-3 font-semibold text-left">Details</th>
+                    <th class="py-3 font-semibold text-left">IP Address</th>
+                    <th class="py-3 pr-4 font-semibold text-right no-print">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for log in logs %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="pl-4 py-2.5 text-sm">{{ log.createdAt|date('M d, Y H:i:s') }}</td>
+                    <td class="py-2.5">
+                        <span class="font-semibold text-sm">{{ log.performedBy.fullName }}</span>
+                        {% if 'ROLE_ADMIN' in log.performedBy.roles %}
+                            <span class="badge badge-danger text-[0.55rem]">Admin</span>
+                        {% elseif 'ROLE_STAFF' in log.performedBy.roles %}
+                            <span class="badge badge-info text-[0.55rem]">Staff</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-2.5">
+                        {% set actionColor = {
+                            'view_alumni': 'badge-primary',
+                            'edit_alumni': 'badge-warning',
+                            'delete_alumni': 'badge-danger',
+                            'create_alumni': 'badge-success',
+                            'view_employment': 'badge-info',
+                            'view_tracer': 'badge-info',
+                            'export_report': 'badge-secondary',
+                            'approve_user': 'badge-success',
+                            'deny_user': 'badge-danger',
+                            'change_role': 'badge-warning'
+                        } %}
+                        <span class="badge {{ actionColor[log.action] ?? 'badge-secondary' }}">
+                            {{ log.actionLabel }}
+                        </span>
+                    </td>
+                    <td class="py-2.5 text-sm">
+                        {{ log.entityType }}
+                        {% if log.entityId %}#{{ log.entityId }}{% endif %}
+                    </td>
+                    <td class="py-2.5 text-sm text-gray-500 max-w-[300px] truncate">
+                        {{ log.details|length > 80 ? log.details|slice(0, 80) ~ '...' : log.details ?? '—' }}
+                    </td>
+                    <td class="py-2.5 text-sm text-gray-500">{{ log.ipAddress ?? '—' }}</td>
+                    <td class="py-2.5 pr-4 text-right no-print">
+                        <div class="inline-flex items-center gap-1">
+                            <a href="{{ path('admin_audit_log_show', {id: log.id}) }}" class="icon-action icon-action-view" title="View details" aria-label="View log details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if is_granted('ROLE_ADMIN') %}
+                            <form method="post" action="{{ path('admin_audit_log_delete', {id: log.id}) }}" onsubmit="return confirm('Delete this log entry?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('audit_delete_' ~ log.id) }}">
+                                <button type="submit" class="icon-action icon-action-delete icon-action-btn" title="Delete entry" aria-label="Delete log entry">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-gray-500 py-8">
+                        <i class="bi bi-journal-text text-2xl block mb-2"></i>
+                        No audit log entries found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ── Privacy Notice ── #}
+<div class="alert alert-warning text-sm mt-4 mb-0">
+    <i class="bi bi-exclamation-triangle mr-2"></i>
+    <span><strong>RA 10173 Compliance:</strong>
+    This audit log records all access to sensitive personal &amp; employment data. Unauthorized access or misuse
+    of alumni data may be subject to penalties under the Data Privacy Act of 2012. Retain logs for a minimum of
+    5 years per NPC Advisory No. 2017-01.</span>
+</div>
+{% endblock %}

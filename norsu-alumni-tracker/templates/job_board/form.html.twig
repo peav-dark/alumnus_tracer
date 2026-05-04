@@ -1,0 +1,398 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block body_class %}admin-material-page{% endblock %}
+
+{% block body %}
+<style>
+    .job-board-editor {
+        --editor-bg: #f8fbff;
+        --editor-card: #ffffff;
+        --editor-border: #dbe4f0;
+        --editor-text: #0f172a;
+        --editor-muted: #64748b;
+        --editor-primary: #1d4ed8;
+        --editor-primary-strong: #1e40af;
+        --editor-soft: #eff6ff;
+        color: var(--editor-text);
+    }
+
+    .job-board-editor .editor-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .job-board-editor .editor-head {
+        border: 1px solid var(--editor-border);
+        border-radius: 1rem;
+        background: var(--editor-card);
+        padding: 1rem 1.15rem;
+        box-shadow: 0 10px 26px rgba(30, 64, 175, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .job-board-editor .editor-kicker {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--editor-muted);
+        margin: 0;
+    }
+
+    .job-board-editor .editor-title {
+        margin: 0.15rem 0 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--editor-text);
+    }
+
+    .job-board-editor .editor-actions {
+        display: flex;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+    }
+
+    .job-board-editor .editor-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        border-radius: 0.7rem;
+        border: 1px solid #bfdbfe;
+        padding: 0.55rem 0.9rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-decoration: none;
+        background: #fff;
+        color: var(--editor-primary-strong);
+    }
+
+    .job-board-editor .editor-btn:hover {
+        background: var(--editor-soft);
+        color: var(--editor-primary-strong);
+        border-color: #93c5fd;
+    }
+
+    .job-board-editor .editor-panel {
+        border: 1px solid var(--editor-border);
+        border-radius: 1rem;
+        background: var(--editor-card);
+        box-shadow: 0 12px 30px rgba(30, 64, 175, 0.07);
+        overflow: hidden;
+    }
+
+    .job-board-editor .editor-panel-head {
+        border-bottom: 1px solid var(--editor-border);
+        padding: 1rem 1.15rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.85rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    }
+
+    .job-board-editor .editor-panel-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    .job-board-editor .editor-panel-subtitle {
+        margin: 0;
+        font-size: 0.78rem;
+        color: var(--editor-muted);
+    }
+
+    .job-board-editor .editor-form {
+        padding: 1.15rem;
+    }
+
+    .job-board-editor .editor-grid {
+        display: grid;
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .job-board-editor .editor-section + .editor-section {
+        margin-top: 1.15rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--editor-border);
+    }
+
+    .job-board-editor .editor-section-head {
+        margin-bottom: 0.85rem;
+    }
+
+    .job-board-editor .editor-section-title {
+        margin: 0;
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: var(--editor-text);
+    }
+
+    .job-board-editor .editor-section-copy {
+        margin: 0.15rem 0 0;
+        font-size: 0.75rem;
+        color: var(--editor-muted);
+    }
+
+    .job-board-editor .editor-form :is(label) {
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--editor-text);
+        margin-bottom: 0.38rem;
+    }
+
+    .job-board-editor .editor-form :is(input.form-input, select.form-select, textarea.form-input) {
+        width: 100%;
+        border-radius: 0.8rem;
+        border: 1px solid var(--editor-border);
+        background: #fff;
+        font-size: 0.88rem;
+        color: var(--editor-text);
+        padding: 0.72rem 0.88rem;
+        min-height: 2.85rem;
+    }
+
+    .job-board-editor .editor-form :is(input.form-input, select.form-select, textarea.form-input):focus {
+        border-color: var(--editor-primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .job-board-editor .editor-form textarea.form-input {
+        min-height: 9rem;
+        resize: vertical;
+    }
+
+    .job-board-editor .editor-form input[type="file"].form-input {
+        padding: 0.55rem 0.7rem;
+    }
+
+    .job-board-editor .editor-form input[type="date"].form-input {
+        min-height: 2.85rem;
+    }
+
+    .job-board-editor .editor-form .form-help-text,
+    .job-board-editor .editor-form small,
+    .job-board-editor .editor-form .help-text {
+        color: var(--editor-muted);
+        font-size: 0.74rem;
+    }
+
+    .job-board-editor .editor-form .form-error-message,
+    .job-board-editor .editor-form .invalid-feedback {
+        font-size: 0.74rem;
+    }
+
+    .job-board-editor .editor-toggle-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        border: 1px solid #bfdbfe;
+        border-radius: 0.95rem;
+        background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%);
+        padding: 0.95rem 1rem;
+    }
+
+    .job-board-editor .editor-checkbox {
+        width: 1.15rem;
+        height: 1.15rem;
+        margin-top: 0.12rem;
+        flex-shrink: 0;
+        accent-color: var(--editor-primary);
+    }
+
+    .job-board-editor .editor-toggle-label {
+        margin: 0;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--editor-text);
+    }
+
+    .job-board-editor .editor-toggle-copy {
+        margin: 0.2rem 0 0;
+        font-size: 0.74rem;
+        color: var(--editor-muted);
+    }
+
+    .job-board-editor .editor-image-preview {
+        margin-top: 1rem;
+        border: 1px solid var(--editor-border);
+        border-radius: 0.95rem;
+        background: #fff;
+        padding: 0.95rem;
+    }
+
+    .job-board-editor .editor-image-title {
+        margin: 0;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--editor-text);
+    }
+
+    .job-board-editor .editor-image-copy {
+        margin: 0.12rem 0 0;
+        font-size: 0.72rem;
+        color: var(--editor-muted);
+    }
+
+    .job-board-editor .editor-submit-row {
+        margin-top: 1.15rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--editor-border);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.6rem;
+    }
+
+    .job-board-editor .editor-save-btn {
+        border: 0;
+    }
+
+    @media (min-width: 768px) {
+        .job-board-editor .editor-grid {
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+        }
+
+        .job-board-editor .field-title,
+        .job-board-editor .field-company { grid-column: span 6 / span 6; }
+        .job-board-editor .field-location,
+        .job-board-editor .field-type,
+        .job-board-editor .field-salary { grid-column: span 4 / span 4; }
+        .job-board-editor .field-industry,
+        .job-board-editor .field-course,
+        .job-board-editor .field-email,
+        .job-board-editor .field-link,
+        .job-board-editor .field-image,
+        .job-board-editor .field-deadline { grid-column: span 6 / span 6; }
+        .job-board-editor .field-description,
+        .job-board-editor .field-requirements,
+        .job-board-editor .field-active { grid-column: span 12 / span 12; }
+    }
+
+    @media (max-width: 767px) {
+        .job-board-editor .editor-head,
+        .job-board-editor .editor-panel-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .job-board-editor .editor-actions,
+        .job-board-editor .editor-submit-row {
+            width: 100%;
+        }
+
+        .job-board-editor .editor-submit-row > * {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .job-board-editor .editor-toggle-card {
+            padding: 0.85rem 0.9rem;
+        }
+    }
+</style>
+
+<section class="job-board-editor">
+    <div class="editor-shell">
+        <header class="editor-head">
+            <div>
+                <p class="editor-kicker">Job Board Management</p>
+                <h1 class="editor-title">{{ title }}</h1>
+            </div>
+            <div class="editor-actions">
+                <a href="{{ path('job_board_manage') }}" class="editor-btn"><i class="bi bi-arrow-left"></i>Back to Manage</a>
+                {% if job.id %}
+                    <a href="{{ path('job_board_manage_show', {id: job.id}) }}" class="editor-btn"><i class="bi bi-eye"></i>View</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <div class="editor-panel">
+            <div class="editor-panel-head">
+                <h2 class="editor-panel-title"><i class="bi bi-briefcase-fill"></i>Job Posting Details</h2>
+                <p class="editor-panel-subtitle">Complete the required fields and publish when ready.</p>
+            </div>
+
+            {{ form_start(form, {'attr': {'class': 'editor-form'}}) }}
+                <div class="editor-section">
+                    <div class="editor-section-head">
+                        <h3 class="editor-section-title">Basic Details</h3>
+                        <p class="editor-section-copy">Set the core job information alumni will see first.</p>
+                    </div>
+                    <div class="editor-grid">
+                        <div class="field-title">{{ form_row(form.title) }}</div>
+                        <div class="field-company">{{ form_row(form.companyName) }}</div>
+                        <div class="field-location">{{ form_row(form.location) }}</div>
+                        <div class="field-type">{{ form_row(form.employmentType) }}</div>
+                        <div class="field-salary">{{ form_row(form.salaryRange) }}</div>
+                        <div class="field-industry">{{ form_row(form.industry) }}</div>
+                        <div class="field-course">{{ form_row(form.relatedCourse) }}</div>
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <div class="editor-section-head">
+                        <h3 class="editor-section-title">Description</h3>
+                        <p class="editor-section-copy">Keep the responsibilities and qualifications easy to scan.</p>
+                    </div>
+                    <div class="editor-grid">
+                        <div class="field-description">{{ form_row(form.description) }}</div>
+                        <div class="field-requirements">{{ form_row(form.requirements) }}</div>
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <div class="editor-section-head">
+                        <h3 class="editor-section-title">Application and Publishing</h3>
+                        <p class="editor-section-copy">Add application details, an optional image, and choose if the posting is already visible.</p>
+                    </div>
+                    <div class="editor-grid">
+                        <div class="field-email">{{ form_row(form.contactEmail) }}</div>
+                        <div class="field-link">{{ form_row(form.applicationLink) }}</div>
+                        <div class="field-image">{{ form_row(form.imageFile) }}</div>
+                        <div class="field-deadline">{{ form_row(form.deadline) }}</div>
+                        <div class="field-active">
+                            <div class="editor-toggle-card">
+                                {{ form_widget(form.isActive, { attr: { class: 'editor-checkbox' } }) }}
+                                <div>
+                                    {{ form_label(form.isActive, null, { label_attr: { class: 'editor-toggle-label' } }) }}
+                                    <p class="editor-toggle-copy">Turn this on when the job should already appear on the alumni Job Board.</p>
+                                    <div class="mt-1 text-sm text-red-600">{{ form_errors(form.isActive) }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if job.imageFilename %}
+                    <div class="editor-image-preview">
+                        <p class="editor-image-title">Current Image</p>
+                        <p class="editor-image-copy">This image is currently shown on the job card.</p>
+                        <img
+                            src="{{ asset('uploads/job_postings/' ~ job.imageFilename) }}"
+                            alt="Current job image"
+                            class="mt-2 rounded-lg border border-gray-200"
+                            style="width: 240px; max-width: 100%; height: 130px; object-fit: cover;"
+                        >
+                    </div>
+                {% endif %}
+
+                <div class="editor-submit-row">
+                    <a href="{{ path('job_board_manage') }}" class="btn-outline-norsu inline-flex items-center justify-center px-4 py-2"><i class="bi bi-x-lg mr-1"></i>Cancel</a>
+                    <button type="submit" class="btn-norsu inline-flex items-center justify-center px-4 py-2 editor-save-btn"><i class="bi bi-check-lg mr-1"></i>Save Job Posting</button>
+                </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</section>
+{% endblock %}

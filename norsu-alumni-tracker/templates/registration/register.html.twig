@@ -1,0 +1,119 @@
+{% extends 'home/landing_layout.html.twig' %}
+
+{% block title %}Register — NORSU Alumni Tracker{% endblock %}
+
+{% block page_content %}
+<div class="bg-blue-50 pb-12">
+    <div class="max-w-screen-xl px-8 mx-auto pt-14">
+        <div data-aos="fade-up" class="max-w-2xl mx-auto text-center mb-10">
+            <h1 class="font-bold text-darken my-3 text-3xl">Create your <span class="text-yellow-500">Alumni Account</span></h1>
+            <p class="leading-relaxed text-gray-500">Register as an alumni member to access opportunities, updates, and tracer survey features. New accounts are reviewed before activation.</p>
+        </div>
+
+        <section data-aos="fade-up" data-aos-delay="100" class="max-w-xl mx-auto bg-white shadow-xl rounded-xl p-8" aria-label="Sign up form">
+            {% for message in app.flashes('success') %}
+                <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ message }}</div>
+            {% endfor %}
+
+            {% for message in app.flashes('warning') %}
+                <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{{ message }}</div>
+            {% endfor %}
+
+            {% for message in app.flashes('danger') %}
+                <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ message }}</div>
+            {% endfor %}
+
+            {% if not hasOpenRegistrationBatches %}
+                <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    No batch registration is open right now. Please contact the alumni office or try again once a batch is reopened.
+                </div>
+            {% endif %}
+
+            <div class="grid grid-cols-2 gap-2 bg-slate-100 rounded-xl p-1 mb-6" role="tablist" aria-label="Authentication options">
+                <a href="{{ path('app_login') }}" class="text-center font-semibold text-gray-600 rounded-lg py-2 no-underline hover:text-gray-900" role="tab" aria-selected="false">Login</a>
+                <span class="text-center font-semibold text-gray-900 bg-white rounded-lg py-2" role="tab" aria-selected="true">Sign Up</span>
+            </div>
+
+            {{ form_start(registrationForm, {'attr': {'class': 'space-y-4'}}) }}
+                {{ form_errors(registrationForm) }}
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <label for="registration_form_schoolId" class="block text-sm font-semibold text-gray-700 mb-2">School ID</label>
+                        {{ form_widget(registrationForm.schoolId, {'attr': {'class': 'w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300', 'placeholder': 'e.g. 202200123'}}) }}
+                        <div class="text-sm text-red-600 mt-1">{{ form_errors(registrationForm.schoolId) }}</div>
+                    </div>
+
+                    <div>
+                        <label for="registration_form_yearGraduated" class="block text-sm font-semibold text-gray-700 mb-2">Batch Year</label>
+                        {{ form_widget(registrationForm.yearGraduated, {'attr': {'class': 'w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300'}}) }}
+                        <div class="text-sm text-red-600 mt-1">{{ form_errors(registrationForm.yearGraduated) }}</div>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="registration_form_firstName" class="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
+                    {{ form_widget(registrationForm.firstName, {'attr': {'class': 'w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300', 'placeholder': 'First name'}}) }}
+                    <div class="text-sm text-red-600 mt-1">{{ form_errors(registrationForm.firstName) }}</div>
+                </div>
+
+                <div>
+                    <label for="registration_form_lastName" class="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
+                    {{ form_widget(registrationForm.lastName, {'attr': {'class': 'w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300', 'placeholder': 'Last name'}}) }}
+                    <div class="text-sm text-red-600 mt-1">{{ form_errors(registrationForm.lastName) }}</div>
+                </div>
+
+                <div>
+                    <label for="registration_form_email" class="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+                    {{ form_widget(registrationForm.email, {'attr': {'class': 'w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300', 'placeholder': 'you@example.com'}}) }}
+                    <div class="text-sm text-red-600 mt-1">{{ form_errors(registrationForm.email) }}</div>
+                </div>
+
+                <div>
+                    <label for="registration_form_plainPassword_first" class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                    {{ form_widget(registrationForm.plainPassword.first, {'attr': {'class': 'w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300', 'placeholder': 'Create a password'}}) }}
+                    <div class="text-sm text-red-600 mt-1">{{ form_errors(registrationForm.plainPassword.first) }}</div>
+                </div>
+
+                <div>
+                    <label for="registration_form_plainPassword_second" class="block text-sm font-semibold text-gray-700 mb-2">Repeat Password</label>
+                    {{ form_widget(registrationForm.plainPassword.second, {'attr': {'class': 'w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300', 'placeholder': 'Repeat your password'}}) }}
+                    <div class="text-sm text-red-600 mt-1">{{ form_errors(registrationForm.plainPassword.second) }}</div>
+                </div>
+
+                <div class="text-sm text-slate-500">
+                    Password must be at least 8 characters and include uppercase, lowercase, number, and special character.
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <label class="flex items-start gap-3 text-sm text-gray-700" for="registration_form_dataPrivacyConsent">
+                        {{ form_widget(registrationForm.dataPrivacyConsent, {'attr': {'class': 'h-4 w-4 mt-0.5 rounded border-slate-300'}}) }}
+                        <span>
+                            I agree to the data privacy terms for account processing.
+                            <a href="{{ path('app_privacy') }}" class="text-blue-700 no-underline hover:underline" target="_blank" rel="noopener">View Privacy Notice</a>
+                        </span>
+                    </label>
+                    <div class="text-sm text-red-600 mt-1">{{ form_errors(registrationForm.dataPrivacyConsent) }}</div>
+                </div>
+
+                <button type="submit" class="w-full rounded-xl bg-gradient-to-r from-indigo-700 to-indigo-900 text-white font-semibold py-3 disabled:opacity-50 disabled:cursor-not-allowed" {{ not hasOpenRegistrationBatches ? 'disabled' : '' }}>Register</button>
+
+                <div class="flex items-center gap-3 text-slate-400 text-sm uppercase tracking-wide my-2">
+                    <span class="h-px bg-slate-200 flex-1"></span>
+                    <span>or</span>
+                    <span class="h-px bg-slate-200 flex-1"></span>
+                </div>
+
+                <a href="{{ path('app_google_start') }}" class="w-full inline-flex justify-center items-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-800 font-medium no-underline hover:bg-slate-50" title="Sign up with Google">Sign up with Google</a>
+
+                <p class="text-center text-sm text-gray-600 mt-4">
+                    By creating an account, you agree to our
+                    <a href="{{ path('app_terms') }}" class="text-blue-700 no-underline hover:underline" target="_blank" rel="noopener">Terms &amp; Conditions</a>
+                    and
+                    <a href="{{ path('app_privacy') }}" class="text-blue-700 no-underline hover:underline" target="_blank" rel="noopener">Privacy Policy</a>.
+                </p>
+            {{ form_end(registrationForm) }}
+        </section>
+    </div>
+</div>
+{% endblock %}

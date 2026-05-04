@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Check Your Email — NORSU Alumni Tracker{% endblock %}
+
+{% block body_class %}no-navbar{% endblock %}
+
+{% block body %}
+{% include 'security/_auth_flow_styles.html.twig' %}
+
+<div class="auth-flow-scene">
+    <div class="auth-flow-wrap">
+        <div class="auth-flow-brand">
+            <div class="auth-flow-badge">
+                <img src="{{ asset('images/norsu-logo.webp') }}" alt="NORSU">
+            </div>
+            <h1>Check Your Email</h1>
+            <p>If an account exists, we sent password reset instructions.</p>
+        </div>
+
+        <section class="auth-flow-card">
+            <div class="auth-flow-msg info text-center">
+                <i class="bi bi-envelope-check mr-1"></i>
+                The reset link will expire in <strong>1 hour</strong>.
+                <div class="mt-1 text-xs">If you do not see the message, check your spam folder.</div>
+            </div>
+
+            <a href="{{ path('app_login') }}" class="auth-flow-link">
+                <i class="bi bi-arrow-left mr-1"></i>Back to Sign In
+            </a>
+        </section>
+
+        <a href="{{ path('app_home') }}" class="auth-flow-back">
+            <i class="bi bi-house-fill"></i>Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard — NORSU Alumni Tracker{% endblock %}
+
+{% block body %}
+<div class="max-w-5xl mx-auto mt-4">
+    <div class="bg-white shadow-md rounded-lg p-5 md:p-6">
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <h2 class="text-xl md:text-2xl font-bold text-[#003366]">Employment Status Overview</h2>
+            <span class="text-xs md:text-sm text-gray-500">NORSU Alumni Tracker</span>
+        </div>
+
+        {% if canViewEmploymentStats %}
+            <div class="relative w-full h-[320px] md:h-[420px]">
+                <canvas id="employmentPieChart" aria-label="Employment status distribution chart"></canvas>
+            </div>
+        {% else %}
+            <div class="rounded-lg border border-amber-200 bg-amber-50 text-amber-800 px-4 py-3 text-sm">
+                You do not have permission to view employment statistics.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {% if canViewEmploymentStats %}
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script>
+            document.addEventListener('turbo:load', function () {
+                const canvas = document.getElementById('employmentPieChart');
+                if (!canvas || typeof Chart === 'undefined') {
+                    return;
+                }
+
+                const labels = {{ employmentLabelsJson|raw }} || [];
+                const values = {{ employmentDataJson|raw }} || [];
+                if (!labels.length || !values.length) {
+                    return;
+                }
+
+                const total = values.reduce((sum, value) => sum + value, 0);
+                const norsuPalette = [
+                    '#003366',
+                    '#FF8C00',
+                    '#00509E',
+                    '#F2A541',
+                    '#0A2472',
+                    '#FFB347',
+                    '#6B7280'
+                ];
+
+                if (window.norsuEmploymentPieChart) {
+                    window.norsuEmploymentPieChart.destroy();
+                }
+
+                window.norsuEmploymentPieChart = new Chart(canvas, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: labels.map((_, index) => norsuPalette[index % norsuPalette.length]),
+                            borderColor: '#FFFFFF',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    generateLabels: function (chart) {
+                                        const chartLabels = chart.data.labels || [];
+                                        const dataset = chart.data.datasets[0] || { data: [], backgroundColor: [] };
+                                        return chartLabels.map(function (label, i) {
+                                            const value = Number(dataset.data[i] || 0);
+                                            const percent = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                            const backgroundColor = Array.isArray(dataset.backgroundColor)
+                                                ? dataset.backgroundColor[i]
+                                                : dataset.backgroundColor;
+
+                                            return {
+                                                text: label + ' (' + percent + '%)',
+                                                fillStyle: backgroundColor,
+                                                strokeStyle: backgroundColor,
+                                                lineWidth: 1,
+                                                hidden: !chart.getDataVisibility(i),
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        const label = context.label || '';
+                                        const value = Number(context.parsed || 0);
+                                        const percent = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                        return label + ': ' + value + ' (' + percent + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        </script>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Submit Feedback{% endblock %}
+
+{% block body %}
+<div class="flex justify-between items-center mb-3">
+    <h4 class="font-bold mb-0"><i class="bi bi-chat-dots mr-2"></i>Submit Feedback</h4>
+    <a href="{{ path('app_home') }}" class="btn-outline-norsu"><i class="bi bi-arrow-left mr-1"></i>Back</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <p class="text-gray-500 mb-4">We value your opinion. Please share your suggestions and feedback about NORSU and our programs.</p>
+
+        {{ form_start(form) }}
+            <div class="space-y-3">
+                <div>{{ form_row(form.suggestions) }}</div>
+                <div>{{ form_row(form.recommendUniversity) }}</div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn-norsu"><i class="bi bi-send mr-1"></i>Submit Feedback</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

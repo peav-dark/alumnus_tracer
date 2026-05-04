@@ -1,0 +1,269 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tracer Analytics{% endblock %}
+
+{% block body %}
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+    <div>
+        <h4 class="font-bold mb-0"><i class="bi bi-graph-up-arrow mr-2"></i>Tracer Study Analytics</h4>
+        <p class="text-gray-500 text-sm mb-0">Graduate tracer study dashboard with AACCUP-aligned reporting</p>
+    </div>
+    <div class="flex gap-2">
+        {% if is_granted('ROLE_ADMIN') %}
+            <a href="{{ path('admin_analytics_hub') }}" class="btn-outline-norsu btn-sm"><i class="bi bi-grid-1x2-fill mr-1"></i>Analytics Hub</a>
+        {% endif %}
+        <button onclick="window.print()" class="btn-outline-norsu btn-sm"><i class="bi bi-printer mr-1"></i>Print</button>
+        {% if is_granted('ROLE_STAFF') %}
+            <a href="{{ path('tracer_export') }}" class="btn-norsu btn-sm"><i class="bi bi-file-earmark-excel mr-1"></i>Export AACCUP Report</a>
+        {% endif %}
+    </div>
+</div>
+
+{# Filters #}
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            <div class="md:col-span-5">
+                <label class="form-label text-xs uppercase text-gray-500">Course</label>
+                <select name="course" class="form-select">
+                    <option value="">All Courses</option>
+                    {% for c in courses|default([]) %}
+                        <option value="{{ c }}" {{ app.request.query.get('course') == c ? 'selected' : '' }}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="md:col-span-4">
+                <label class="form-label text-xs uppercase text-gray-500">Year Graduated</label>
+                <select name="year" class="form-select">
+                    <option value="">All Years</option>
+                    {% for y in years|default([]) %}
+                        <option value="{{ y }}" {{ app.request.query.get('year') == (y ~ '') ? 'selected' : '' }}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="md:col-span-3">
+                <button type="submit" class="btn-norsu w-full"><i class="bi bi-funnel mr-1"></i>Apply Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# Summary Stat Cards #}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    <div class="card border-l-4 border-blue-600">
+        <div class="card-body py-3">
+            <div class="text-gray-500 text-xs uppercase">Total Respondents</div>
+            <div class="text-2xl font-bold text-gray-800">{{ totalAlumni|default(0) }}</div>
+        </div>
+    </div>
+    <div class="card border-l-4 border-green-600">
+        <div class="card-body py-3">
+            <div class="text-gray-500 text-xs uppercase">Employed</div>
+            <div class="text-2xl font-bold text-green-600">{{ employed|default(0) }}</div>
+        </div>
+    </div>
+    <div class="card border-l-4 border-red-500">
+        <div class="card-body py-3">
+            <div class="text-gray-500 text-xs uppercase">Unemployed</div>
+            <div class="text-2xl font-bold text-red-500">{{ unemployed|default(0) }}</div>
+        </div>
+    </div>
+    <div class="card border-l-4 border-amber-500">
+        <div class="card-body py-3">
+            <div class="text-gray-500 text-xs uppercase">Self-Employed / Freelance</div>
+            <div class="text-2xl font-bold text-amber-600">{{ selfEmployed|default(0) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+    {# Employment Rate Donut #}
+    <div class="card">
+        <div class="card-header bg-white font-semibold"><i class="bi bi-pie-chart mr-1"></i> Employment Rate</div>
+        <div class="card-body text-center">
+            {% set rate = employmentRate|default(0) %}
+            {% set circumference = 2 * 3.14159 * 54 %}
+            {% set offset = circumference - (rate / 100) * circumference %}
+            <svg width="160" height="160" viewBox="0 0 120 120" class="mx-auto mb-3">
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#E5E7EB" stroke-width="12"/>
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#059669" stroke-width="12"
+                    stroke-dasharray="{{ circumference }}" stroke-dashoffset="{{ offset }}"
+                    stroke-linecap="round" transform="rotate(-90 60 60)"/>
+                <text x="60" y="56" text-anchor="middle" class="text-2xl font-bold" fill="#1E40AF">{{ rate|number_format(1) }}%</text>
+                <text x="60" y="72" text-anchor="middle" class="text-xs" fill="#6B7280">Employment</text>
+            </svg>
+
+            <div class="flex flex-wrap justify-center gap-2 mb-3">
+                <span class="badge badge-employed">Employed: {{ employed|default(0) }}</span>
+                <span class="badge badge-unemployed">Unemployed: {{ unemployed|default(0) }}</span>
+                <span class="badge badge-self-employed">Self-Employed: {{ selfEmployed|default(0) }}</span>
+                <span class="badge badge-freelance">Freelance: {{ freelance|default(0) }}</span>
+            </div>
+
+            {# Employed within 6 months #}
+            {% set sixMonthRate = sixMonthRate|default(0) %}
+            <div class="mt-3">
+                <div class="flex justify-between text-sm mb-1">
+                    <span>Employed within 6 months of graduation</span>
+                    <span class="font-bold">{{ sixMonthRate|number_format(1) }}%</span>
+                </div>
+                <div class="progress-wrap h-2">
+                    <div class="progress-fill" style="width: {{ sixMonthRate }}%; background: #1E40AF"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Job-Degree Alignment Donut #}
+    <div class="card">
+        <div class="card-header bg-white font-semibold"><i class="bi bi-bullseye mr-1"></i> Job-Degree Alignment</div>
+        <div class="card-body text-center">
+            {% set alignRate = alignmentRate|default(0) %}
+            {% set alignOffset = circumference - (alignRate / 100) * circumference %}
+            <svg width="160" height="160" viewBox="0 0 120 120" class="mx-auto mb-3">
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#E5E7EB" stroke-width="12"/>
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#1E40AF" stroke-width="12"
+                    stroke-dasharray="{{ circumference }}" stroke-dashoffset="{{ alignOffset }}"
+                    stroke-linecap="round" transform="rotate(-90 60 60)"/>
+                <text x="60" y="56" text-anchor="middle" class="text-2xl font-bold" fill="#1E40AF">{{ alignRate|number_format(1) }}%</text>
+                <text x="60" y="72" text-anchor="middle" class="text-xs" fill="#6B7280">Aligned</text>
+            </svg>
+
+            <div class="flex flex-wrap justify-center gap-2">
+                {% for item in relevanceStats|default([]) %}
+                    <span class="badge {{ loop.index == 1 ? 'badge-employed' : (loop.index == 2 ? 'badge-warning' : 'badge-secondary') }}">
+                        {{ item.label }}: {{ item.count }}
+                    </span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Per-Course Breakdown #}
+<div class="card mb-4">
+    <div class="card-header bg-white font-semibold"><i class="bi bi-table mr-1"></i> Per-Course Employment Breakdown</div>
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+                <tr>
+                    <th class="pl-4 py-2.5 font-semibold text-left">Course</th>
+                    <th class="py-2.5 font-semibold text-center">Total</th>
+                    <th class="py-2.5 font-semibold text-center">Employed</th>
+                    <th class="py-2.5 font-semibold text-center">Unemployed</th>
+                    <th class="py-2.5 font-semibold text-center">Self-Emp</th>
+                    <th class="py-2.5 font-semibold text-center">Freelance</th>
+                    <th class="pr-4 py-2.5 font-semibold text-center">Emp. Rate</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for course in courseStats|default([]) %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="pl-4 py-2.5 font-semibold">{{ course.name }}</td>
+                    <td class="py-2.5 text-center">{{ course.total }}</td>
+                    <td class="py-2.5 text-center text-green-600 font-semibold">{{ course.employed }}</td>
+                    <td class="py-2.5 text-center text-red-500">{{ course.unemployed|default(0) }}</td>
+                    <td class="py-2.5 text-center">{{ course.selfEmployed|default(0) }}</td>
+                    <td class="py-2.5 text-center">{{ course.freelance|default(0) }}</td>
+                    <td class="pr-4 py-2.5 text-center">
+                        <div class="flex items-center gap-2 justify-center">
+                            <div class="progress-wrap h-2 w-16">
+                                <div class="progress-fill" style="width: {{ course.rate }}%; background: {{ course.rate >= 70 ? '#059669' : (course.rate >= 40 ? '#D97706' : '#EF4444') }}"></div>
+                            </div>
+                            <span class="font-semibold text-xs">{{ course.rate|number_format(1) }}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center text-gray-500 py-6">No course data available.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+    {# Salary Distribution #}
+    <div class="card">
+        <div class="card-header bg-white font-semibold"><i class="bi bi-cash-stack mr-1"></i> Salary Distribution</div>
+        <div class="card-body">
+            {% set salaryTotal = 0 %}
+            {% for count in salaryRanges|default({}) %}{% set salaryTotal = salaryTotal + count %}{% endfor %}
+            {% for range, count in salaryRanges|default({}) %}
+            <div class="mb-3">
+                <div class="flex justify-between text-sm mb-1">
+                    <span>{{ range }}</span>
+                    <span class="font-bold">{{ count }}</span>
+                </div>
+                <div class="progress-wrap h-3">
+                    <div class="progress-fill" style="width: {{ salaryTotal > 0 ? (count / salaryTotal * 100)|round : 0 }}%; background: #1E40AF"></div>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-sm text-center">No salary data available.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# Employment Type #}
+    <div class="card">
+        <div class="card-header bg-white font-semibold"><i class="bi bi-diagram-3 mr-1"></i> Employment Type Distribution</div>
+        <div class="card-body">
+            {% set typeColors = ['#1E40AF', '#059669', '#D97706', '#06B6D4', '#7C3AED'] %}
+            {% set typeTotal = 0 %}
+            {% for item in typeStats|default([]) %}{% set typeTotal = typeTotal + item.total %}{% endfor %}
+            {% for item in typeStats|default([]) %}
+            <div class="mb-3">
+                <div class="flex justify-between text-sm mb-1">
+                    <span>{{ item.employmentType }}</span>
+                    <span class="font-bold">{{ item.total }}</span>
+                </div>
+                <div class="progress-wrap h-3">
+                    <div class="progress-fill" style="width: {{ typeTotal > 0 ? (item.total / typeTotal * 100)|round : 0 }}%; background: {{ typeColors[loop.index0 % 5] }}"></div>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-sm text-center">No employment type data.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{# Graduation Year Trends #}
+<div class="card mb-4">
+    <div class="card-header bg-white font-semibold"><i class="bi bi-calendar-range mr-1"></i> Graduation Year Trends</div>
+    <div class="card-body">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for item in yearStats|default([]) %}
+            <div class="border rounded-lg p-3">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-bold">{{ item.yearGraduated }}</span>
+                    <span class="badge badge-primary">{{ item.total }} graduates</span>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-span-full text-center text-gray-500 py-4">No year trend data available.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{# DPA Compliance Notice #}
+<div class="card border-l-4 border-amber-400 bg-amber-50">
+    <div class="card-body">
+        <div class="flex gap-3">
+            <div class="shrink-0">
+                <i class="bi bi-shield-lock-fill text-2xl text-amber-600"></i>
+            </div>
+            <div>
+                <h6 class="font-bold text-amber-800 mb-1">Data Privacy Act Compliance</h6>
+                <p class="text-sm text-amber-700 mb-0">
+                    This report is generated in compliance with the <strong>Data Privacy Act of 2012 (RA 10173)</strong>.
+                    All personal information is collected with consent and processed solely for tracer study and AACCUP accreditation purposes.
+                    Unauthorized disclosure of individual data is strictly prohibited.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

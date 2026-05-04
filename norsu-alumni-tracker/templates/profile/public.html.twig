@@ -1,0 +1,82 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ alumni.fullName }} — NORSU Alumni{% endblock %}
+
+{% block body %}
+<div class="max-w-3xl mx-auto">
+
+    {# ── Profile Card ── #}
+    <div class="card mb-4">
+        <div class="card-header-norsu py-6 text-center">
+            <div class="rounded-full inline-flex items-center justify-center mx-auto mb-3 text-3xl font-bold text-white" style="width:80px;height:80px;background:rgba(255,255,255,0.2);border:3px solid rgba(255,255,255,0.3)">
+                {{ alumni.firstName|first|upper }}{{ alumni.lastName|first|upper }}
+            </div>
+            <h4 class="font-bold mb-1 text-white">{{ alumni.fullName }}</h4>
+            <p class="mb-2 text-white/75">
+                <i class="bi bi-mortarboard mr-1"></i>{{ alumni.course }} {{ alumni.yearGraduated ? '(' ~ alumni.yearGraduated ~ ')' : '' }}
+                {% if alumni.college %} &middot; {{ alumni.college }}{% endif %}
+            </p>
+            {% if alumni.employmentStatus %}
+                {% set statusBadge = {
+                    'Employed': 'badge-employed',
+                    'Self-Employed': 'badge-self-employed',
+                    'Unemployed': 'badge-unemployed',
+                    'Freelance': 'badge-freelance'
+                } %}
+                <span class="badge {{ statusBadge[alumni.employmentStatus] ?? 'badge-secondary' }} px-3 py-1.5">
+                    {{ alumni.employmentStatus }}
+                </span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="text-center mb-3">
+                <span class="badge badge-success px-3 py-1.5">
+                    <i class="bi bi-patch-check-fill mr-1"></i>Verified NORSU Alumni
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div>
+                    <span class="text-gray-500 block">Student Number</span>
+                    <strong>{{ alumni.studentNumber }}</strong>
+                </div>
+                <div>
+                    <span class="text-gray-500 block">Course</span>
+                    <strong>{{ alumni.course }}</strong>
+                </div>
+                {% if alumni.jobTitle %}
+                <div>
+                    <span class="text-gray-500 block">Current Position</span>
+                    <strong>{{ alumni.jobTitle }}</strong>
+                </div>
+                {% endif %}
+                {% if alumni.companyName %}
+                <div>
+                    <span class="text-gray-500 block">Company</span>
+                    <strong>{{ alumni.companyName }}</strong>
+                </div>
+                {% endif %}
+                {% if alumni.industry %}
+                <div>
+                    <span class="text-gray-500 block">Industry</span>
+                    <strong>{{ alumni.industry }}</strong>
+                </div>
+                {% endif %}
+                {% if alumni.province %}
+                <div>
+                    <span class="text-gray-500 block">Province</span>
+                    <strong>{{ alumni.province }}</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ── Footer Branding ── #}
+    <div class="text-center text-gray-500 text-sm mb-4">
+        <img src="{{ asset('images/norsu-logo.webp') }}" alt="NORSU" width="32" height="32" class="rounded-full mr-1 inline">
+        <span>Negros Oriental State University &middot; Alumni Tracker</span>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,201 @@
+<style>
+    .public-footer-v2 {
+        position: relative;
+        overflow: hidden;
+        margin-top: 2rem;
+        color: #e7eefb;
+        background: linear-gradient(135deg, #24396f 0%, #273a73 48%, #233565 100%);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .public-footer-v2::before,
+    .public-footer-v2::after {
+        content: "";
+        position: absolute;
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .public-footer-v2::before {
+        left: 16%;
+        top: 62%;
+    }
+
+    .public-footer-v2::after {
+        right: 14%;
+        top: 62%;
+    }
+
+    .public-footer-grid {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 3.25rem 1.4rem 3.4rem;
+        display: grid;
+        gap: 2rem;
+        grid-template-columns: 1.1fr 1.1fr 0.75fr;
+    }
+
+    .public-footer-title {
+        margin: 0 0 1rem;
+        color: #f4f8ff;
+        font-size: 2rem;
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+    }
+
+    .public-footer-title::after {
+        content: "";
+        display: block;
+        width: 50px;
+        height: 3px;
+        margin-top: 0.65rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #31b3ff 0%, #1ed3be 100%);
+    }
+
+    .footer-brandline {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .footer-brandline img {
+        width: 52px;
+        height: 52px;
+        object-fit: contain;
+        filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.28));
+    }
+
+    .footer-brandline span {
+        color: #f5f8ff;
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .footer-lead {
+        margin: 0;
+        max-width: 520px;
+        color: #d7e1f4;
+        font-size: 1.9rem;
+        line-height: 1.45;
+        font-weight: 500;
+    }
+
+    .footer-contact-list {
+        display: grid;
+        gap: 1rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .footer-contact-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        color: #dbe4f6;
+        font-size: 1.9rem;
+        line-height: 1.45;
+    }
+
+    .footer-contact-item i {
+        color: #38bdf8;
+        font-size: 2rem;
+        line-height: 1;
+        margin-top: 0.1rem;
+    }
+
+    .footer-social-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+    }
+
+    .footer-social-link {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #f2f7ff;
+        text-decoration: none;
+        background: linear-gradient(135deg, #486cc0 0%, #3c5fac 100%);
+        box-shadow: 0 8px 20px rgba(8, 24, 64, 0.28);
+    }
+
+    .footer-social-link i {
+        font-size: 2.1rem;
+    }
+
+    @media (max-width: 900px) {
+        .public-footer-grid {
+            grid-template-columns: 1fr;
+            gap: 1.7rem;
+            padding: 2.1rem 1rem 2.2rem;
+        }
+
+        .footer-brandline span,
+        .public-footer-title {
+            font-size: 1.25rem;
+        }
+
+        .footer-lead,
+        .footer-contact-item {
+            font-size: 1.02rem;
+        }
+
+        .footer-contact-item i {
+            font-size: 1.1rem;
+        }
+
+        .footer-social-link {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+        }
+
+        .footer-social-link i {
+            font-size: 1.2rem;
+        }
+    }
+</style>
+
+<footer class="public-footer-v2">
+    <div class="public-footer-grid">
+        <div>
+            <div class="footer-brandline">
+                <img src="{{ asset('images/norsu-seal.webp') }}" alt="NORSU Seal">
+                <span>NORSU Alumni</span>
+            </div>
+            <p class="footer-lead">Connect with fellow alumni, stay updated with university news, and explore career opportunities in our growing community.</p>
+        </div>
+
+        <div>
+            <h3 class="public-footer-title">Contact Info</h3>
+            <ul class="footer-contact-list">
+                <li class="footer-contact-item"><i class="bi bi-envelope-fill"></i><span>alumni@norsu.edu.ph</span></li>
+                <li class="footer-contact-item"><i class="bi bi-telephone-fill"></i><span>+63 35 422 6002</span></li>
+                <li class="footer-contact-item">
+                    <i class="bi bi-geo-alt-fill"></i>
+                    <span>Office of Alumni Affairs<br>Negros Oriental State University<br>Kagawasan, Ave. Rizal<br>Dumaguete City, 6200<br>Negros Oriental, Philippines</span>
+                </li>
+            </ul>
+        </div>
+
+        <div>
+            <h3 class="public-footer-title">Follow Us</h3>
+            <div class="footer-social-wrap">
+                <a class="footer-social-link" href="#" aria-label="Facebook">
+                    <i class="bi bi-facebook"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</footer>

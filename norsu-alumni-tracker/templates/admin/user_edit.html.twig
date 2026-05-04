@@ -1,0 +1,97 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit User — {{ user.fullName }}{% endblock %}
+
+{% block body %}
+<div class="flex justify-between items-center mb-4">
+    <h4 class="font-bold mb-0 text-xl"><i class="bi bi-pencil-square mr-2"></i>Edit User</h4>
+    <a href="{{ path('admin_users') }}" class="btn-secondary btn-sm"><i class="bi bi-arrow-left mr-1"></i>Back to Users</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+    {# ── Edit Form ── #}
+    <div class="lg:col-span-8">
+        <div class="card">
+            <div class="card-header bg-white"><i class="bi bi-person-gear mr-1"></i> User Information</div>
+            <div class="card-body">
+                {{ form_start(form) }}
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                        <div>
+                            {{ form_label(form.firstName, null, {'label_attr': {'class': 'form-label font-semibold'}}) }}
+                            {{ form_widget(form.firstName) }}
+                            {{ form_errors(form.firstName) }}
+                        </div>
+                        <div>
+                            {{ form_label(form.lastName, null, {'label_attr': {'class': 'form-label font-semibold'}}) }}
+                            {{ form_widget(form.lastName) }}
+                            {{ form_errors(form.lastName) }}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        {{ form_label(form.email, null, {'label_attr': {'class': 'form-label font-semibold'}}) }}
+                        {{ form_widget(form.email) }}
+                        {{ form_errors(form.email) }}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                        <div>
+                            {{ form_label(form.roles, null, {'label_attr': {'class': 'form-label font-semibold'}}) }}
+                            {{ form_widget(form.roles) }}
+                            {{ form_errors(form.roles) }}
+                        </div>
+                        <div>
+                            {{ form_label(form.accountStatus, null, {'label_attr': {'class': 'form-label font-semibold'}}) }}
+                            {{ form_widget(form.accountStatus) }}
+                            {{ form_errors(form.accountStatus) }}
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn-norsu"><i class="bi bi-check-lg mr-1"></i>Save Changes</button>
+                        <a href="{{ path('admin_users') }}" class="btn-secondary">Cancel</a>
+                    </div>
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+
+    {# ── User Info Sidebar ── #}
+    <div class="lg:col-span-4">
+        <div class="card text-center">
+            <div class="card-body py-6">
+                <div class="mx-auto mb-3 w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold text-white" style="background:linear-gradient(135deg,#1E40AF,#059669)">
+                    {{ user.firstName|first|upper }}{{ user.lastName|first|upper }}
+                </div>
+                <h5 class="font-bold mb-1">{{ user.fullName }}</h5>
+                <p class="text-gray-500 text-sm mb-2">{{ user.email }}</p>
+                <span class="badge {% if 'ROLE_ADMIN' in user.roles %}badge-danger{% elseif 'ROLE_STAFF' in user.roles %}badge-info{% else %}badge-success{% endif %}">{% if 'ROLE_ADMIN' in user.roles %}Administrator{% elseif 'ROLE_STAFF' in user.roles %}Staff{% else %}Alumni{% endif %}</span>
+                <span class="badge {% if user.accountStatus == 'active' %}badge-employed{% elseif user.accountStatus == 'pending' %}badge-warning{% else %}badge-secondary{% endif %} ml-1">{{ user.accountStatus|capitalize }}</span>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6 class="font-semibold mb-3"><i class="bi bi-info-circle mr-1"></i> Account Details</h6>
+                <div class="flex justify-between text-sm mb-2">
+                    <span class="text-gray-500">User ID</span>
+                    <span class="font-bold">#{{ user.id }}</span>
+                </div>
+                <div class="flex justify-between text-sm mb-2">
+                    <span class="text-gray-500">Registered</span>
+                    <span class="font-bold">{{ user.dateRegistered|date('M d, Y') }}</span>
+                </div>
+                <div class="flex justify-between text-sm mb-2">
+                    <span class="text-gray-500">Last Login</span>
+                    <span class="font-bold">{{ user.lastLogin ? user.lastLogin|date('M d, Y H:i') : '—' }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">Role</span>
+                    <span class="font-bold">{% if 'ROLE_ADMIN' in user.roles %}Admin{% elseif 'ROLE_STAFF' in user.roles %}Staff{% else %}Alumni{% endif %}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

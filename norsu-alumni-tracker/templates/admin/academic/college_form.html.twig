@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ college.id ? 'Edit' : 'Create' }} College - Admin{% endblock %}
+
+{% block body %}
+<div class="max-w-2xl">
+    <h4 class="font-bold mb-4">
+        <i class="bi bi-building mr-2"></i>
+        {{ college.id ? 'Edit College' : 'Create College' }}
+    </h4>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post" class="space-y-4">
+                <input type="hidden" name="_token" value="{{ csrf_token('college_form') }}">
+                <div>
+                    <label class="form-label">College Name <span class="text-red-600">*</span></label>
+                    <input type="text" name="name" value="{{ college.name }}" class="form-input" required placeholder="e.g., College of Engineering">
+                </div>
+
+                <div>
+                    <label class="form-label">Code <span class="text-red-600">*</span></label>
+                    <input type="text" name="code" value="{{ college.code }}" class="form-input" required placeholder="e.g., COE" maxlength="100">
+                    <p class="text-xs text-gray-500 mt-1">Unique code to identify the college</p>
+                </div>
+
+                <div>
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-input" rows="4" placeholder="Enter college description…">{{ college.description }}</textarea>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="isActive" id="isActive" value="1" class="w-4 h-4"
+                           {% if college.isIsActive !== false %}checked{% endif %}>
+                    <label for="isActive" class="text-sm font-medium">Active College</label>
+                </div>
+
+                <div class="flex gap-2 pt-4">
+                    <button type="submit" class="btn-norsu">
+                        <i class="bi bi-check-lg mr-1"></i>
+                        {{ college.id ? 'Update College' : 'Create College' }}
+                    </button>
+                    <a href="{{ path('admin_colleges') }}" class="btn-secondary">
+                        <i class="bi bi-x-lg mr-1"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

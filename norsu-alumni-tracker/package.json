@@ -1,0 +1,33 @@
+{
+  "name": "norsu_alumni_tracker---copy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "build:css": "tailwindcss -i ./assets/styles/app.tailwind.css -o ./assets/styles/app.css --minify",
+    "watch:css": "tailwindcss -i ./assets/styles/app.tailwind.css -o ./assets/styles/app.css --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/b1rsse/norsu-alumni-tracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/b1rsse/norsu-alumni-tracker/issues"
+  },
+  "homepage": "https://github.com/b1rsse/norsu-alumni-tracker#readme",
+  "description": "",
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  },
+  "dependencies": {
+    "@popperjs/core": "^2.11.8",
+    "bootstrap": "^5.3.8",
+    "chart.js": "^4.5.1"
+  }
+}

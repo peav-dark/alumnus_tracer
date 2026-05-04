@@ -1,0 +1,510 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Sora:wght@400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+            body { @apply bg-gray-50 text-gray-800 min-h-screen font-sans; }
+            a { @apply text-blue-700 transition-colors; }
+            a:hover { @apply text-blue-900; }
+        }
+
+        @layer components {
+            /* ── Buttons ── */
+            .btn-norsu {
+                @apply inline-flex items-center justify-center gap-1.5 bg-blue-700 hover:bg-blue-900 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm no-underline;
+            }
+            .btn-norsu-gold {
+                @apply inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm no-underline;
+            }
+            .btn-outline-norsu {
+                @apply inline-flex items-center justify-center gap-1.5 border-2 border-blue-700 text-blue-700 hover:bg-blue-700 hover:text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm no-underline;
+            }
+            .btn-sm { @apply !px-3 !py-1.5 !text-xs; }
+            .btn-xs { @apply !px-2 !py-1 !text-[0.7rem]; }
+            .btn-danger {
+                @apply inline-flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm no-underline;
+            }
+            .btn-warning {
+                @apply inline-flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm no-underline;
+            }
+            .btn-secondary {
+                @apply inline-flex items-center justify-center gap-1.5 bg-gray-500 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm no-underline;
+            }
+            .btn-info {
+                @apply inline-flex items-center justify-center gap-1.5 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm no-underline;
+            }
+
+            /* ── Cards ── */
+            .card {
+                @apply bg-white rounded-2xl shadow-sm;
+            }
+            .card-body { @apply p-5; }
+            .card-header {
+                @apply px-5 py-3 border-b border-gray-100 font-semibold rounded-t-2xl;
+            }
+            .card-footer {
+                @apply px-5 py-3 border-t border-gray-100 rounded-b-2xl;
+            }
+            .card-header-norsu {
+                @apply bg-gradient-to-r from-blue-900 to-blue-700 text-white font-semibold rounded-t-2xl px-5 py-3;
+            }
+
+            /* ── Tables ── */
+            .table-norsu { @apply w-full text-sm; }
+            .table-norsu thead { @apply bg-blue-700 text-white; }
+            .table-norsu thead th { @apply px-4 py-3 font-semibold text-left; }
+            .table-norsu tbody td { @apply px-4 py-3 border-b border-gray-100; }
+            .table-norsu tbody tr { @apply hover:bg-gray-50 transition-colors; }
+
+            /* ── Badges ── */
+            .badge { @apply inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-full; }
+            .badge-success  { @apply bg-green-100 text-green-800; }
+            .badge-danger   { @apply bg-red-100 text-red-800; }
+            .badge-warning  { @apply bg-yellow-100 text-yellow-800; }
+            .badge-info     { @apply bg-blue-100 text-blue-800; }
+            .badge-secondary{ @apply bg-gray-100 text-gray-700; }
+            .badge-primary  { @apply bg-blue-100 text-blue-800; }
+            .badge-employed      { @apply bg-green-100 text-green-800; }
+            .badge-unemployed    { @apply bg-red-100 text-red-800; }
+            .badge-self-employed { @apply bg-amber-100 text-amber-800; }
+            .badge-freelance     { @apply bg-violet-100 text-violet-800; }
+
+            /* ── Forms ── */
+            .form-input {
+                @apply w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-all
+                       focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20;
+            }
+            .form-select {
+                @apply w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-all bg-white
+                       focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20;
+            }
+            .form-label { @apply block text-sm font-medium text-gray-700 mb-1; }
+
+            /* ── Alerts ── */
+            .alert { @apply rounded-lg p-4 text-sm flex items-start justify-between; }
+            .alert-success { @apply bg-green-50 text-green-800 border border-green-200; }
+            .alert-danger  { @apply bg-red-50 text-red-800 border border-red-200; }
+            .alert-error   { @apply bg-red-50 text-red-800 border border-red-200; }
+            .alert-warning { @apply bg-yellow-50 text-yellow-800 border border-yellow-200; }
+            .alert-info    { @apply bg-blue-50 text-blue-800 border border-blue-200; }
+
+            /* ── Stat Cards ── */
+            .stat-card { @apply bg-white rounded-2xl shadow-sm overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-lg; }
+            .stat-icon { @apply w-[52px] h-[52px] rounded-xl flex items-center justify-center flex-shrink-0; }
+            .stat-value { @apply text-2xl font-extrabold leading-none text-gray-900; }
+            .stat-label { @apply text-xs text-gray-500 font-medium mt-0.5; }
+
+            /* ── Quick Action Cards ── */
+            .quick-action-card {
+                @apply border border-gray-100 rounded-xl p-3.5 text-center transition-all bg-white no-underline text-inherit block
+                       hover:border-blue-700 hover:shadow-md hover:-translate-y-0.5;
+            }
+            .action-icon { @apply w-11 h-11 rounded-xl flex items-center justify-center mx-auto mb-2; }
+
+            /* ── Welcome Banner ── */
+            .welcome-banner {
+                @apply bg-gradient-to-r from-blue-900 via-blue-700 to-emerald-600 text-white rounded-2xl overflow-hidden shadow-lg relative;
+            }
+            .banner-main { @apply relative z-10 py-7 px-8; }
+            .banner-bottom { @apply bg-black/10 px-8 py-2.5 flex items-center gap-6 text-xs flex-wrap; }
+            .user-avatar {
+                @apply w-[52px] h-[52px] rounded-full bg-white/20 flex items-center justify-center text-xl font-bold
+                       backdrop-blur-sm border-2 border-white/30 flex-shrink-0;
+            }
+
+            /* ── Auth Pages ── */
+            .auth-page {
+                @apply min-h-screen flex items-center justify-center p-4 relative overflow-hidden;
+                font-family: 'Sora', 'Manrope', sans-serif;
+                background:
+                    radial-gradient(circle at 14% 16%, rgba(255, 255, 255, 0.15) 0, rgba(255, 255, 255, 0) 28%),
+                    radial-gradient(circle at 84% 22%, rgba(52, 211, 153, 0.2) 0, rgba(52, 211, 153, 0) 34%),
+                    linear-gradient(130deg, #0f2f88 0%, #1d4ed8 45%, #0f766e 100%);
+            }
+            .auth-card {
+                @apply bg-white rounded-[1.5rem] overflow-hidden w-full max-w-md relative z-10;
+                border: 1px solid rgba(255, 255, 255, 0.55);
+                box-shadow: 0 36px 80px rgba(9, 26, 79, 0.42);
+                animation: auth-lift 0.7s ease-out;
+            }
+            .auth-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 5px;
+                background: linear-gradient(90deg, #1d4ed8 0%, #10b981 100%);
+            }
+            .auth-logo {
+                @apply w-[70px] h-[70px] rounded-full object-cover border-[3px] border-blue-700 shadow-lg bg-white;
+            }
+            .auth-container { @apply w-full max-w-md mx-auto; }
+            .auth-card--vibrant .card-body {
+                @apply px-7 py-7;
+            }
+            .auth-kicker {
+                @apply inline-block mb-2 px-3 py-1 rounded-full text-[0.68rem] font-bold uppercase tracking-wider;
+                color: #1e3a8a;
+                background: linear-gradient(90deg, rgba(29, 78, 216, 0.14), rgba(16, 185, 129, 0.16));
+            }
+            .auth-form > .mb-3,
+            .auth-form > .mb-4 {
+                animation: auth-fade-in 0.45s ease-out;
+            }
+            .auth-input-icon {
+                @apply relative;
+            }
+            .auth-input-icon > i {
+                @apply absolute left-3 top-1/2 -translate-y-1/2 text-base pointer-events-none;
+                color: #6b7280;
+                transition: color 0.2s ease;
+            }
+            .auth-input-icon input,
+            .auth-input-icon select {
+                @apply w-full pl-10 pr-3 py-2.5 rounded-xl text-sm outline-none transition-all relative z-0;
+                border: 1px solid #c8d0dd;
+                background: #f9fbff;
+            }
+            .auth-input-icon input::placeholder,
+            .auth-input-icon select::placeholder {
+                color: #98a2b3;
+            }
+            .auth-input-icon:focus-within > i {
+                color: #1d4ed8;
+            }
+            .auth-input-icon input:focus,
+            .auth-input-icon select:focus {
+                border-color: #4f8cf7;
+                box-shadow: 0 0 0 3px rgba(79, 140, 247, 0.2);
+                background: #fff;
+            }
+            .auth-input-icon input[type="password"],
+            .auth-input-icon .password-has-toggle {
+                @apply pr-10;
+            }
+            .password-toggle-btn {
+                @apply absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-0 text-gray-400 cursor-pointer text-base p-0 leading-none z-10;
+            }
+            .password-toggle-btn:hover {
+                @apply text-gray-600;
+            }
+            .auth-page .btn-norsu {
+                border-radius: 0.85rem;
+                background: linear-gradient(120deg, #1d4ed8 0%, #1f5de5 45%, #0ea5a4 100%);
+                box-shadow: 0 12px 26px rgba(29, 78, 216, 0.35);
+                transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+            }
+            .auth-page .btn-norsu:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 16px 34px rgba(29, 78, 216, 0.42);
+                filter: saturate(1.05);
+            }
+            .auth-page .btn-norsu:active {
+                transform: translateY(0);
+            }
+            .auth-link { @apply text-blue-700 font-semibold no-underline hover:underline; }
+            .auth-footer { @apply text-center text-white/60 text-xs; }
+            .auth-support-links {
+                @apply mt-4 pt-4;
+                border-top: 1px solid rgba(148, 163, 184, 0.28);
+            }
+
+            /* ── Progress Bars ── */
+            .progress-wrap { @apply w-full bg-gray-200 rounded-full overflow-hidden; }
+            .progress-fill { @apply rounded-full transition-all duration-500; }
+
+            /* ── Sidebar Links ── */
+            .sidebar-link {
+                @apply flex items-center gap-3 px-4 py-2.5 mx-3 my-0.5 rounded-lg text-sm font-medium transition-all
+                       text-gray-700 no-underline hover:bg-blue-50 hover:text-blue-700;
+            }
+            .sidebar-link.active {
+                @apply bg-gradient-to-r from-blue-900 to-blue-700 text-white shadow-md hover:text-white;
+            }
+            .sidebar-link .sidebar-icon { @apply w-5 h-5 flex-shrink-0; }
+
+            /* ── Footer ── */
+            .footer-norsu, .dashboard-footer {
+                @apply text-white/70 p-6 mt-8 text-xs rounded-t-2xl;
+                background: linear-gradient(135deg, #0F172A, #1E3A8A);
+            }
+            .footer-brand { @apply text-white font-bold text-sm mb-1; }
+            .footer-divider { @apply border-t border-white/10 my-3; }
+            .footer-social a {
+                @apply inline-flex items-center justify-center w-7 h-7 rounded-full bg-white/10 text-white mr-1 text-xs
+                       transition-colors hover:bg-emerald-600 no-underline;
+            }
+            .footer-links a {
+                @apply mr-4 text-xs text-emerald-400 hover:text-white no-underline;
+            }
+            .footer-logo { @apply w-5 h-5 rounded-full object-cover align-middle; }
+
+            /* ── Alumni Profile Hero ── */
+            .alumni-profile-hero { @apply rounded-2xl overflow-hidden shadow-lg; }
+            .profile-hero-bg {
+                @apply relative;
+                background: linear-gradient(135deg, #1E3A8A 0%, #1E40AF 50%, #059669 100%);
+            }
+            .profile-hero-content { @apply py-8 px-8 relative z-10; }
+            .profile-hero-stats { @apply bg-black/10 py-2.5 px-8 text-xs text-white/85; }
+            .profile-avatar-lg {
+                @apply w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-3xl font-bold text-white
+                       border-[3px] border-white/30 flex-shrink-0 backdrop-blur-sm;
+            }
+            .mate-avatar {
+                @apply w-10 h-10 min-w-[40px] rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0;
+                background: linear-gradient(135deg, #1E40AF, #059669);
+            }
+            .mate-avatar-sm {
+                @apply w-8 h-8 min-w-[32px] rounded-full flex items-center justify-center text-[0.65rem] font-bold text-white flex-shrink-0;
+                background: linear-gradient(135deg, #1E40AF, #059669);
+            }
+
+            /* ── Staff Dashboard ── */
+            .staff-panel-card { @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg; }
+            .dpa-card { @apply overflow-hidden; }
+            .bg-gradient-dpa { background: linear-gradient(135deg, #0891B2 0%, #155E75 100%); }
+            .dpa-info-box { @apply bg-gray-50 border border-gray-200 rounded-lg p-4 h-full; }
+            .audit-activity-list { @apply max-h-[220px] overflow-y-auto; }
+            .audit-icon-mini { @apply w-5 h-5 flex items-center justify-center flex-shrink-0; }
+        }
+
+/* ══════════════════════════════════════════════════════
+   NORSU Alumni Tracker — Custom CSS
+   (Complements Tailwind utility classes in base.html.twig)
+   ══════════════════════════════════════════════════════ */
+
+/* ── Hide navbar on login/register pages ── */
+body.no-navbar #mainNavbar { display: none !important; }
+body.no-navbar .pt-\[72px\] { padding-top: 0 !important; }
+
+/* ── Sidebar: mobile toggle & scrollbar ── */
+#sidebar.show {
+    transform: translateX(0) !important;
+}
+#sidebarBackdrop.show {
+    display: block !important;
+}
+
+#sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: #c5cad3 transparent;
+}
+#sidebar::-webkit-scrollbar { width: 5px; }
+#sidebar::-webkit-scrollbar-track { background: transparent; }
+#sidebar::-webkit-scrollbar-thumb { background: #c5cad3; border-radius: 4px; }
+#sidebar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* ── Guest mobile nav toggle ── */
+#guestNavMobile.show {
+    display: block !important;
+}
+
+/* ── Welcome Banner decorations ── */
+.welcome-banner::before {
+    content: '';
+    position: absolute;
+    top: -30px;
+    right: -30px;
+    width: 200px;
+    height: 200px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 50%;
+}
+.welcome-banner::after {
+    content: '';
+    position: absolute;
+    bottom: -40px;
+    right: 60px;
+    width: 120px;
+    height: 120px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+}
+
+/* ── Auth Page decorations ── */
+.auth-page::before {
+    content: '';
+    position: absolute;
+    width: 520px;
+    height: 520px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0));
+    top: -150px;
+    right: -100px;
+    filter: blur(2px);
+    animation: auth-float 9s ease-in-out infinite;
+}
+.auth-page::after {
+    content: '';
+    position: absolute;
+    width: 390px;
+    height: 390px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0));
+    bottom: -100px;
+    left: -80px;
+    filter: blur(2px);
+    animation: auth-float 11s ease-in-out infinite reverse;
+}
+
+@keyframes auth-float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(16px);
+    }
+}
+
+@keyframes auth-lift {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.995);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes auth-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ── Alumni Profile Hero decorations ── */
+.profile-hero-bg::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 200px;
+    height: 200px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 50%;
+}
+.profile-hero-bg::after {
+    content: '';
+    position: absolute;
+    bottom: 20px;
+    right: 80px;
+    width: 100px;
+    height: 100px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+}
+
+/* ── Hero Section (landing page) ── */
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 500px;
+    height: 500px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+}
+
+/* ── Pulsing badge animation ── */
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); }
+    50%       { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+}
+.pulse-badge {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ── Role selector buttons ── */
+.role-select-btn {
+    border: 2px solid #D1D5DB;
+    border-radius: 0.625rem;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    color: #374151;
+    background: #fff;
+    cursor: pointer;
+}
+.role-select-btn:hover {
+    border-color: #3B82F6;
+    color: #1E40AF;
+    background: #EFF6FF;
+}
+.role-select-btn.active,
+.role-select-btn:has(input:checked) {
+    border-color: #1E40AF;
+    background: #1E40AF;
+    color: #fff;
+}
+
+/* ── Register type chooser card ── */
+.register-type-card {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid transparent;
+}
+.register-type-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    border-color: #1E40AF;
+}
+
+/* ── Mobile brand tweaks ── */
+@media (max-width: 575.98px) {
+    #mainNavbar .text-lg {
+        font-size: 1rem;
+    }
+    .profile-hero-content { padding: 1.25rem 1rem 0.75rem; }
+    .profile-hero-stats { padding: 0.5rem 1rem; }
+    .profile-avatar-lg { width: 56px; height: 56px; font-size: 1.3rem; }
+    .auth-card--vibrant .card-body { @apply px-5 py-6; }
+    .auth-kicker { @apply text-[0.62rem]; }
+}
+
+@media (max-width: 767.98px) {
+    .profile-hero-content { padding: 1.5rem 1.25rem 1rem; }
+    .profile-hero-stats { padding: 0.5rem 1.25rem; font-size: 0.72rem; }
+    .profile-avatar-lg { width: 64px; height: 64px; font-size: 1.5rem; }
+    .mate-avatar { width: 36px; height: 36px; min-width: 36px; font-size: 0.7rem; }
+}
+
+/* ══════════════════════════════════════════════════════
+   PRINT STYLES
+   ══════════════════════════════════════════════════════ */
+@media print {
+    body { background: #fff !important; }
+    #mainNavbar, #sidebar, #sidebarBackdrop,
+    .quick-action-card, .welcome-banner .banner-bottom { display: none !important; }
+    .lg\:ml-\[260px\] { margin-left: 0 !important; }
+    .card { break-inside: avoid; box-shadow: none !important; border: 1px solid #ddd !important; }
+    .stat-card:hover, .staff-panel-card:hover { transform: none; }
+    .welcome-banner {
+        background: #1E40AF !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        border-radius: 0 !important;
+    }
+    .pulse-badge { animation: none; }
+    a[href]::after { content: none !important; }
+    .profile-hero-bg {
+        background: #1E40AF !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .bg-gradient-dpa {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}

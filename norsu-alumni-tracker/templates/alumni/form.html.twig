@@ -1,0 +1,142 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block body %}
+<div class="flex justify-between items-center mb-3">
+    <div>
+        <h4 class="font-bold mb-0">{{ title }}</h4>
+        {% if isStaffPortal|default(false) %}
+            <p class="text-gray-500 text-sm mb-0">Alumni Verification Portal</p>
+        {% endif %}
+    </div>
+    <a href="{{ path('alumni_index') }}" class="btn-outline-norsu"><i class="bi bi-arrow-left mr-1"></i>Back</a>
+</div>
+
+{{ form_start(form) }}
+<div class="card">
+    <div class="card-body">
+        {% if isStaffPortal|default(false) %}
+            <div class="alert alert-info mb-4">
+                <i class="bi bi-info-circle mr-1"></i>
+                Staff can update only approval, first name, last name, and graduation year. Role changes are disabled.
+            </div>
+        {% endif %}
+
+        {% if isStaffPortal|default(false) %}
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div class="md:col-span-6">{{ form_row(form.firstName) }}</div>
+            <div class="md:col-span-6">{{ form_row(form.lastName) }}</div>
+            <div class="md:col-span-6">{{ form_row(form.yearGraduated) }}</div>
+            <div class="md:col-span-6">{{ form_row(form.isApproved) }}</div>
+        </div>
+        {% else %}
+        {# Tab navigation #}
+        <div class="flex border-b border-gray-200 mb-4 gap-1 overflow-x-auto">
+            <button type="button" data-tab-target="#tab-personal" class="px-4 py-2 text-sm font-semibold border-b-2 border-norsu text-norsu whitespace-nowrap">
+                <i class="bi bi-person mr-1"></i>Personal
+            </button>
+            <button type="button" data-tab-target="#tab-academic" class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-norsu whitespace-nowrap">
+                <i class="bi bi-mortarboard mr-1"></i>Academic
+            </button>
+            <button type="button" data-tab-target="#tab-employment" class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-norsu whitespace-nowrap">
+                <i class="bi bi-briefcase mr-1"></i>Employment
+            </button>
+            <button type="button" data-tab-target="#tab-career" class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-norsu whitespace-nowrap">
+                <i class="bi bi-graph-up mr-1"></i>Career
+            </button>
+            <button type="button" data-tab-target="#tab-feedback" class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-norsu whitespace-nowrap">
+                <i class="bi bi-chat-dots mr-1"></i>Feedback
+            </button>
+        </div>
+
+        {# Personal Info Tab #}
+        <div id="tab-personal" class="tab-pane">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                <div class="md:col-span-4">{{ form_row(form.studentNumber) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.firstName) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.lastName) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.middleName) }}</div>
+                <div class="md:col-span-2">{{ form_row(form.suffix) }}</div>
+                <div class="md:col-span-3">{{ form_row(form.sex) }}</div>
+                <div class="md:col-span-3">{{ form_row(form.civilStatus) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.dateOfBirth) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.contactNumber) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.province) }}</div>
+                <div class="md:col-span-6">{{ form_row(form.emailAddress) }}</div>
+                <div class="md:col-span-6">{{ form_row(form.homeAddress) }}</div>
+            </div>
+        </div>
+
+        {# Academic Tab #}
+        <div id="tab-academic" class="tab-pane hidden">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                <div class="md:col-span-4">{{ form_row(form.course) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.college) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.degreeProgram) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.major) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.yearGraduated) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.dateGraduated) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.latinHonor) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.honorsReceived) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.gwa) }}</div>
+                <div class="md:col-span-6">{{ form_row(form.scholarshipGranted) }}</div>
+            </div>
+        </div>
+
+        {# Employment Tab #}
+        <div id="tab-employment" class="tab-pane hidden">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                <div class="md:col-span-4">{{ form_row(form.employmentStatus) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.employmentType) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.jobLevel) }}</div>
+                <div class="md:col-span-6">{{ form_row(form.jobTitle) }}</div>
+                <div class="md:col-span-6">{{ form_row(form.companyName) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.industry) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.monthlySalary) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.dateHired) }}</div>
+                <div class="md:col-span-6">{{ form_row(form.companyAddress) }}</div>
+                <div class="md:col-span-3">{{ form_row(form.yearsInCompany) }}</div>
+                <div class="md:col-span-3">{{ form_row(form.countryOfEmployment) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.isFirstJob) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.workAbroad) }}</div>
+            </div>
+        </div>
+
+        {# Career Tab #}
+        <div id="tab-career" class="tab-pane hidden">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                <div class="md:col-span-4">{{ form_row(form.jobRelatedToCourse) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.promotionReceived) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.datePromoted) }}</div>
+                <div class="md:col-span-6">{{ form_row(form.skillsUsedInJob) }}</div>
+                <div class="md:col-span-6">{{ form_row(form.trainingsAttended) }}</div>
+                <div class="md:col-span-6">{{ form_row(form.licensesObtained) }}</div>
+                <div class="md:col-span-6">{{ form_row(form.certifications) }}</div>
+                <div class="md:col-span-12">{{ form_row(form.careerAchievements) }}</div>
+            </div>
+        </div>
+
+        {# Feedback Tab #}
+        <div id="tab-feedback" class="tab-pane hidden">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                <div class="md:col-span-4">{{ form_row(form.furtherStudies) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.postgraduateDegree) }}</div>
+                <div class="md:col-span-4">{{ form_row(form.schoolForFurtherStudies) }}</div>
+                <div class="md:col-span-12">{{ form_row(form.suggestionsForUniversity) }}</div>
+                <div class="md:col-span-3">{{ form_row(form.recommendNorsu) }}</div>
+                <div class="md:col-span-3">{{ form_row(form.willingForSeminar) }}</div>
+                <div class="md:col-span-3">{{ form_row(form.willingForDonation) }}</div>
+                <div class="md:col-span-3">{{ form_row(form.willingForMentorship) }}</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card-footer bg-white flex gap-2">
+        <button type="submit" class="btn-norsu"><i class="bi bi-check-lg mr-1"></i>Save Alumni Record</button>
+        <a href="{{ path('alumni_index') }}" class="btn-secondary">Cancel</a>
+    </div>
+</div>
+{{ form_end(form) }}
+{% endblock %}

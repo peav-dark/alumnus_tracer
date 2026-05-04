@@ -1,0 +1,25 @@
+{# Reusable pagination partial — expects: currentPage, totalPages, route, routeParams (optional) #}
+{% if totalPages is defined and totalPages > 1 %}
+<nav class="flex justify-center mt-4 mb-2">
+    <ul class="flex gap-1">
+        {# Previous #}
+        {% if currentPage > 1 %}
+            <li><a href="{{ path(route, (routeParams|default({}))|merge({page: currentPage - 1})) }}" class="px-3 py-1.5 rounded border text-sm hover:bg-gray-100 no-underline text-gray-700">&laquo; Prev</a></li>
+        {% endif %}
+
+        {# Page numbers #}
+        {% for p in max(1, currentPage - 2)..min(totalPages, currentPage + 2) %}
+            {% if p == currentPage %}
+                <li><span class="px-3 py-1.5 rounded border text-sm font-bold bg-blue-800 text-white">{{ p }}</span></li>
+            {% else %}
+                <li><a href="{{ path(route, (routeParams|default({}))|merge({page: p})) }}" class="px-3 py-1.5 rounded border text-sm hover:bg-gray-100 no-underline text-gray-700">{{ p }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {# Next #}
+        {% if currentPage < totalPages %}
+            <li><a href="{{ path(route, (routeParams|default({}))|merge({page: currentPage + 1})) }}" class="px-3 py-1.5 rounded border text-sm hover:bg-gray-100 no-underline text-gray-700">Next &raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
