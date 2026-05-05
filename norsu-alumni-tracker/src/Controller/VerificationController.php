@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\AuditLogger;
 use App\Service\NotificationService;
+use App\Service\SurveyInvitationAssignmentService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -65,11 +66,18 @@ class VerificationController extends AbstractController
      * Approve a pending registrant.
      */
     #[Route('/{id}/approve', name: 'admin_verification_approve', methods: ['POST'])]
-    public function approve(User $user, Request $request, EntityManagerInterface $em): Response
+    public function approve(
+        User $user,
+        Request $request,
+        EntityManagerInterface $em,
+        SurveyInvitationAssignmentService $invitationAssignmentService,
+    ): Response
     {
         if ($this->isCsrfTokenValid('verify' . $user->getId(), $request->request->get('_token'))) {
             $user->setAccountStatus('active');
             $em->flush();
+
+            $invitationAssignmentService->assignForUser($user);
 
             $this->audit->log(
                 AuditLog::ACTION_APPROVE_USER,
@@ -120,7 +128,12 @@ class VerificationController extends AbstractController
      */
     #[Route('/bulk-approve', name: 'admin_verification_bulk_approve', methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN')]
-    public function bulkApprove(Request $request, UserRepository $repo, EntityManagerInterface $em): Response
+    public function bulkApprove(
+        Request $request,
+        UserRepository $repo,
+        EntityManagerInterface $em,
+        SurveyInvitationAssignmentService $invitationAssignmentService,
+    ): Response
     {
         if ($this->isCsrfTokenValid('bulk_approve', $request->request->get('_token'))) {
             $pending = $repo->findBy(['accountStatus' => 'pending']);
@@ -130,6 +143,10 @@ class VerificationController extends AbstractController
                 $count++;
             }
             $em->flush();
+
+            foreach ($pending as $user) {
+                $invitationAssignmentService->assignForUser($user);
+            }
 
             $this->audit->log(
                 AuditLog::ACTION_APPROVE_USER,

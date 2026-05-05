@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Repository\AlumniRepository;
 use App\Repository\UserRepository;
 use App\Service\GoogleOnboardingService;
+use App\Service\SurveyInvitationAssignmentService;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,6 +30,7 @@ class GoogleAuthController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly GoogleOnboardingService $googleOnboardingService,
+        private readonly SurveyInvitationAssignmentService $invitationAssignmentService,
         private readonly JWTTokenManagerInterface $jwtManager,
         private readonly Security $security,
         #[Autowire('%env(string:GOOGLE_CLIENT_ID)%')]
@@ -162,24 +164,14 @@ class GoogleAuthController extends AbstractController
         }
 
         if (!$user instanceof User) {
+            // Check if an Alumni record already exists for this email
             $alumni = $this->alumniRepository->findOneBy(['emailAddress' => $email]);
 
-            if (!$alumni instanceof Alumni) {
-                return $this->rejectGoogleSignIn(
-                    $frontendRedirect,
-                    'No alumni account found. Please register using an official QR registration link from the Alumni Office.'
-                );
-            }
-
-            if ($alumni->getUser() instanceof User) {
+            if ($alumni instanceof Alumni && $alumni->getUser() instanceof User) {
                 $user = $alumni->getUser();
             } else {
-                $firstName = $alumni->getFirstName();
-                $lastName = $alumni->getLastName();
-
-                if (trim($firstName) === '' || trim($lastName) === '') {
-                    [$firstName, $lastName] = $this->resolveNames($profile, $email);
-                }
+                // Create a new user — they will link to a StudentRecord via the post-login modal
+                [$firstName, $lastName] = $this->resolveNames($profile, $email);
 
                 $user = new User();
                 $user->setEmail($email);
@@ -187,21 +179,24 @@ class GoogleAuthController extends AbstractController
                 $user->setLastName($lastName);
                 $user->setRoles([User::ROLE_ALUMNI]);
                 $user->setAccountStatus('active');
-                $user->setSchoolId($alumni->getStudentNumber());
                 $user->setGoogleSubject($googleSubject !== '' ? $googleSubject : null);
                 $user->setEmailVerifiedAt(new \DateTimeImmutable());
-                $user->setRequiresOnboarding(true);
+                $user->setNeedsStudentLink(true);
                 $user->setDpaConsent(true);
                 $user->setDpaConsentDate(new \DateTime());
                 $user->setPassword(
                     $this->passwordHasher->hashPassword($user, bin2hex(random_bytes(32)))
                 );
 
-                $alumni->setUser($user);
-                $user->setAlumni($alumni);
+                // If an unlinked Alumni record exists, connect it
+                if ($alumni instanceof Alumni) {
+                    $alumni->setUser($user);
+                    $user->setAlumni($alumni);
+                    $user->setNeedsStudentLink(false);
+                    $this->entityManager->persist($alumni);
+                }
 
                 $this->entityManager->persist($user);
-                $this->entityManager->persist($alumni);
             }
         }
 
@@ -212,27 +207,26 @@ class GoogleAuthController extends AbstractController
             );
         }
 
+        // Try to auto-link alumni record if the user doesn't have one yet
         if ($user->getAlumni() === null && !$this->isStaffAccount($user)) {
             $alumni = $this->alumniRepository->findOneBy(['emailAddress' => $email])
                 ?? ($user->getSchoolId() ? $this->alumniRepository->findOneBy(['studentNumber' => $user->getSchoolId()]) : null);
 
-            if (!$alumni instanceof Alumni) {
-                return $this->rejectGoogleSignIn(
-                    $frontendRedirect,
-                    'No alumni account found. Please register using an official QR registration link from the Alumni Office.'
-                );
-            }
+            if ($alumni instanceof Alumni) {
+                if ($alumni->getUser() instanceof User && $alumni->getUser()->getId() !== $user->getId()) {
+                    return $this->rejectGoogleSignIn(
+                        $frontendRedirect,
+                        'This alumni record is already linked to another account. Please contact the Alumni Office.'
+                    );
+                }
 
-            if ($alumni->getUser() instanceof User && $alumni->getUser()->getId() !== $user->getId()) {
-                return $this->rejectGoogleSignIn(
-                    $frontendRedirect,
-                    'This alumni record is already linked to another account. Please contact the Alumni Office.'
-                );
+                $alumni->setUser($user);
+                $user->setAlumni($alumni);
+                $user->setNeedsStudentLink(false);
+                $this->entityManager->persist($alumni);
             }
-
-            $alumni->setUser($user);
-            $user->setAlumni($alumni);
-            $this->entityManager->persist($alumni);
+            // If no alumni found, that's OK — needsStudentLink stays true
+            // and the post-login modal will handle it
         }
 
         if ($user instanceof User) {
@@ -250,18 +244,28 @@ class GoogleAuthController extends AbstractController
             }
         }
 
-        $needsOnboarding = $this->googleOnboardingService->needsOnboarding($user);
-        $user->setRequiresOnboarding($needsOnboarding);
+        // Skip old onboarding if user needs student linking —
+        // the Student Link Modal handles everything now.
+        $needsStudentLink = $user->getNeedsStudentLink();
+        $needsOnboarding = false;
 
-        if (!$needsOnboarding && $user->getProfileCompletedAt() === null) {
-            $user->setProfileCompletedAt(new \DateTimeImmutable());
+        if (!$needsStudentLink) {
+            $needsOnboarding = $this->googleOnboardingService->needsOnboarding($user);
+            $user->setRequiresOnboarding($needsOnboarding);
+
+            if (!$needsOnboarding && $user->getProfileCompletedAt() === null) {
+                $user->setProfileCompletedAt(new \DateTimeImmutable());
+            }
         }
 
         $this->entityManager->flush();
 
+        $this->invitationAssignmentService->assignForUser($user);
+
         return $this->redirectToFrontend($frontendRedirect, [
             'token' => $this->jwtManager->create($user),
             'onboarding' => $needsOnboarding ? '1' : '0',
+            'needsStudentLink' => $needsStudentLink ? '1' : '0',
         ]);
 
         /*
@@ -317,6 +321,7 @@ class GoogleAuthController extends AbstractController
             return null;
         }
 
+        // Try to auto-link if an Alumni record exists
         $email = strtolower(trim((string) $user->getEmail()));
         $alumni = $email !== ''
             ? $this->alumniRepository->findOneBy(['emailAddress' => $email])
@@ -326,23 +331,20 @@ class GoogleAuthController extends AbstractController
             $alumni = $this->alumniRepository->findOneBy(['studentNumber' => $user->getSchoolId()]);
         }
 
-        if (!$alumni instanceof Alumni) {
-            return $this->rejectGoogleSignIn(
-                $frontendRedirect,
-                'No alumni account found. Please register using an official QR registration link from the Alumni Office.'
-            );
-        }
+        if ($alumni instanceof Alumni) {
+            if ($alumni->getUser() instanceof User && $alumni->getUser()->getId() !== $user->getId()) {
+                return $this->rejectGoogleSignIn(
+                    $frontendRedirect,
+                    'This alumni record is already linked to another account. Please contact the Alumni Office.'
+                );
+            }
 
-        if ($alumni->getUser() instanceof User && $alumni->getUser()->getId() !== $user->getId()) {
-            return $this->rejectGoogleSignIn(
-                $frontendRedirect,
-                'This alumni record is already linked to another account. Please contact the Alumni Office.'
-            );
+            $alumni->setUser($user);
+            $user->setAlumni($alumni);
+            $user->setNeedsStudentLink(false);
+            $this->entityManager->persist($alumni);
         }
-
-        $alumni->setUser($user);
-        $user->setAlumni($alumni);
-        $this->entityManager->persist($alumni);
+        // If no alumni record found, user still passes — they'll use the linking modal
 
         return null;
     }

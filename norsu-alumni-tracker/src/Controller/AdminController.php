@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\UserRepository;
+use App\Service\SurveyInvitationAssignmentService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -125,11 +126,17 @@ class AdminController extends AbstractController
 
     #[Route('/users/{id}/approve', name: 'admin_user_approve', methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN')]
-    public function approveUser(User $user, Request $request, EntityManagerInterface $em): Response
+    public function approveUser(
+        User $user,
+        Request $request,
+        EntityManagerInterface $em,
+        SurveyInvitationAssignmentService $invitationAssignmentService,
+    ): Response
     {
         if ($this->isCsrfTokenValid('approve' . $user->getId(), $request->request->get('_token'))) {
             $user->setAccountStatus('active');
             $em->flush();
+            $invitationAssignmentService->assignForUser($user);
             $this->addFlash('success', $user->getFullName() . ' has been approved.');
         }
 
@@ -138,12 +145,20 @@ class AdminController extends AbstractController
 
     #[Route('/users/{id}/toggle-status', name: 'admin_user_toggle_status', methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN')]
-    public function toggleUserStatus(User $user, Request $request, EntityManagerInterface $em): Response
+    public function toggleUserStatus(
+        User $user,
+        Request $request,
+        EntityManagerInterface $em,
+        SurveyInvitationAssignmentService $invitationAssignmentService,
+    ): Response
     {
         if ($this->isCsrfTokenValid('toggle' . $user->getId(), $request->request->get('_token'))) {
             $newStatus = $user->getAccountStatus() === 'active' ? 'inactive' : 'active';
             $user->setAccountStatus($newStatus);
             $em->flush();
+            if ($newStatus === 'active') {
+                $invitationAssignmentService->assignForUser($user);
+            }
             $this->addFlash('success', $user->getFullName() . ' status changed to ' . $newStatus . '.');
         }
 

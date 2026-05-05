@@ -11,6 +11,7 @@ class GtsSurveyQuestionBank
 {
     public const INPUT_TEXT = 'text';
     public const INPUT_TEXTAREA = 'textarea';
+    public const INPUT_LOCATION = 'location';
     public const INPUT_RADIO = 'radio';
     public const INPUT_CHECKBOX = 'checkbox';
     public const INPUT_SELECT = 'select';
@@ -38,6 +39,7 @@ class GtsSurveyQuestionBank
                 'inputType' => $inputType,
                 'options' => $this->normalizeOptions($inputType, $question->getOptions()),
                 'sortOrder' => $question->getSortOrder(),
+                'isRequired' => true,
                 'numberKey' => $this->extractNumberKey($question->getQuestionText()),
             ];
         }, $questions);
@@ -132,6 +134,7 @@ class GtsSurveyQuestionBank
                 'inputType' => (string) ($response['inputType'] ?? self::INPUT_TEXT),
                 'options' => $response['options'] ?? null,
                 'sortOrder' => 0,
+                'isRequired' => true,
                 'numberKey' => $response['numberKey'] ?? null,
             ];
         }
@@ -375,6 +378,7 @@ class GtsSurveyQuestionBank
         $allowed = [
             self::INPUT_TEXT,
             self::INPUT_TEXTAREA,
+            self::INPUT_LOCATION,
             self::INPUT_RADIO,
             self::INPUT_CHECKBOX,
             self::INPUT_SELECT,
@@ -588,9 +592,19 @@ class GtsSurveyQuestionBank
             'Opportunity for employment abroad',
             'No particular choice or no better idea',
         ];
+        
+        $years = $this->generateYearOptions();
+        $examTypes = [
+            'Board Examination',
+            'Professional License Examination',
+            'State Board Exam',
+            'Licensure Exam',
+            'Specialty Certification',
+            'Other Certification',
+        ];
 
         return [
-            $this->makeQuestion('default-a-02', 'A. General Information', '2. Permanent Address', self::INPUT_TEXTAREA, 20),
+            $this->makeQuestion('default-a-02', 'A. General Information', '2. Permanent Address', self::INPUT_LOCATION, 20),
             $this->makeQuestion('default-a-04', 'A. General Information', '4. Telephone / Contact Number(s)', self::INPUT_TEXT, 40),
             $this->makeQuestion('default-a-05', 'A. General Information', '5. Mobile Number', self::INPUT_TEXT, 50),
             $this->makeQuestion('default-a-06', 'A. General Information', '6. Civil Status', self::INPUT_SELECT, 60, [
@@ -626,9 +640,10 @@ class GtsSurveyQuestionBank
 
             $this->makeQuestion('default-b-12', 'B. Educational Background', '12. Educational Attainment (Baccalaureate Degree Only)', self::INPUT_REPEATER, 120, [
                 $this->makeRepeaterColumn('college', 'College', self::INPUT_TEXT),
-                $this->makeRepeaterColumn('yearGraduated', 'Year Graduated', self::INPUT_TEXT),
+                $this->makeRepeaterColumn('yearGraduated', 'Year Graduated', self::INPUT_SELECT, $years),
             ]),
             $this->makeQuestion('default-b-13', 'B. Educational Background', '13. Professional Examination(s) Passed', self::INPUT_REPEATER, 130, [
+                $this->makeRepeaterColumn('type', 'Type of Examination', self::INPUT_SELECT, $examTypes),
                 $this->makeRepeaterColumn('name', 'Name of Examination', self::INPUT_TEXT),
                 $this->makeRepeaterColumn('dateTaken', 'Date Taken', self::INPUT_DATE),
                 $this->makeRepeaterColumn('rating', 'Rating', self::INPUT_SELECT, ['Passed', 'Failed', 'Pending']),
@@ -793,7 +808,15 @@ class GtsSurveyQuestionBank
      *
      * @return array<string, mixed>
      */
-    private function makeQuestion(string $key, string $section, string $questionText, string $inputType, int $sortOrder, ?array $options = null): array
+    private function makeQuestion(
+        string $key,
+        string $section,
+        string $questionText,
+        string $inputType,
+        int $sortOrder,
+        ?array $options = null,
+        bool $isRequired = true,
+    ): array
     {
         return [
             'key' => $key,
@@ -802,6 +825,7 @@ class GtsSurveyQuestionBank
             'inputType' => $inputType,
             'options' => $options,
             'sortOrder' => $sortOrder,
+            'isRequired' => $isRequired,
             'numberKey' => $this->extractNumberKey($questionText),
         ];
     }
@@ -824,6 +848,23 @@ class GtsSurveyQuestionBank
     /**
      * @return list<string>|null
      */
+    /**
+     * Generate year options from 1970 to current year (descending order).
+     *
+     * @return list<string>
+     */
+    private function generateYearOptions(): array
+    {
+        $currentYear = (int) date('Y');
+        $years = [];
+        
+        for ($year = $currentYear; $year >= 1970; $year--) {
+            $years[] = (string) $year;
+        }
+        
+        return $years;
+    }
+
     private function parseInlineOptions(string $value): ?array
     {
         $options = array_values(array_filter(array_map('trim', explode(',', $value)), static fn (string $option): bool => $option !== ''));

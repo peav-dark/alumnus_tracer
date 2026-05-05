@@ -44,6 +44,7 @@ export function CampaignRowActions({
     try {
       const response = await fetch(`/api/admin/gts/campaigns/${campaignId}/close`, {
         method: "PATCH",
+        credentials: "include",
       });
       const body = (await response.json().catch(() => ({}))) as { message?: string };
 
@@ -76,6 +77,7 @@ export function CampaignRowActions({
     try {
       const response = await fetch(`/api/admin/gts/campaigns/${campaignId}`, {
         method: "DELETE",
+        credentials: "include",
       });
       const body = (await response.json().catch(() => ({}))) as { message?: string };
 

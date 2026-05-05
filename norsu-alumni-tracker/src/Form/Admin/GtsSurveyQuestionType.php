@@ -29,6 +29,7 @@ class GtsSurveyQuestionType extends AbstractType
                 'choices' => [
                     'Text' => 'text',
                     'Textarea' => 'textarea',
+                    'Philippine Address' => 'location',
                     'Radio' => 'radio',
                     'Checkbox' => 'checkbox',
                     'Select' => 'select',
@@ -61,6 +62,10 @@ class GtsSurveyQuestionType extends AbstractType
                 'attr' => [
                     'class' => 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200',
                 ],
+            ])
+            ->add('isRequired', CheckboxType::class, [
+                'required' => false,
+                'label' => 'Required question',
             ])
             ->add('isActive', CheckboxType::class, [
                 'required' => false,

@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    redirectPath: getPostLoginRedirectPath(token),
+    redirectPath: getPostLoginRedirectPath(account),
     user: account,
   });
 }
@@ -98,10 +98,17 @@ async function fetchAccountSettings(token: string) {
   }
 }
 
-function getPostLoginRedirectPath(token: string) {
-  const roles = readJwtRoles(token);
+function getPostLoginRedirectPath(account: unknown) {
+  if (!account || typeof account !== "object") {
+    return "/";
+  }
 
-  if (roles.includes("ROLE_ADMIN")) {
+  const roles: string[] = Array.isArray((account as Record<string, unknown>).roles)
+    ? ((account as Record<string, unknown>).roles as string[])
+    : [];
+  const primaryRole = (account as Record<string, unknown>).primaryRole;
+
+  if (roles.includes("ROLE_ADMIN") || roles.includes("ROLE_STAFF") || primaryRole === "admin" || primaryRole === "staff") {
     return "/dashboard";
   }
 

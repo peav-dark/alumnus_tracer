@@ -8,6 +8,7 @@ import {
 } from "@/components/alumni-system/ui";
 import { IconActionLink } from "@/components/alumni-system/icon-action-link";
 import { JQueryDataTable } from "@/components/alumni-system/jquery-data-table";
+import { GtsResponsesExportWrapper } from "@/components/alumni-system/gts-responses-export-wrapper";
 import {
   Table,
   TableBody,
@@ -16,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getAdminGtsResponses } from "@/lib/api";
+import { getAdminGtsResponses, getAdminGtsResponseFilters } from "@/lib/api";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export const metadata: Metadata = {
 
 export default async function GtsResponsesPage() {
   const response = await getAdminGtsResponses("limit=100");
+  const filterResponse = await getAdminGtsResponseFilters();
   const rows = response?.items ?? [];
   const meta = response?.meta ?? {
     page: 1,
@@ -81,6 +83,17 @@ export default async function GtsResponsesPage() {
       value: status,
     }));
 
+  // Get all distinct colleges and courses from the database
+  const collegeOptions = (filterResponse?.colleges ?? []).map((college) => ({
+    label: college,
+    value: college,
+  }));
+
+  const courseOptions = (filterResponse?.courses ?? []).map((course) => ({
+    label: course,
+    value: course,
+  }));
+
   return (
     <>
       <FeatureHeader
@@ -96,7 +109,14 @@ export default async function GtsResponsesPage() {
       </div>
 
       {rows.length ? (
-        <Panel title="Submitted Responses">
+        <GtsResponsesExportWrapper
+          surveyOptions={surveyOptions}
+          campaignOptions={campaignOptions}
+          batchOptions={visibleBatchOptions}
+          collegeOptions={collegeOptions}
+          courseOptions={courseOptions}
+        >
+          <Panel title="Submitted Responses">
           <JQueryDataTable
             order={[[5, "desc"]]}
             pageLength={25}
@@ -197,7 +217,8 @@ export default async function GtsResponsesPage() {
               </TableBody>
             </Table>
           </JQueryDataTable>
-        </Panel>
+          </Panel>
+        </GtsResponsesExportWrapper>
       ) : (
         <EmptyState
           title="No GTS responses found"

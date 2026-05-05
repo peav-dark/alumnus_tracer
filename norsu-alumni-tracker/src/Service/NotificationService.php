@@ -222,12 +222,11 @@ class NotificationService
             ->to($draft->getEmail())
             ->subject('Your Verification Code — NORSU Alumni Tracker')
             ->html(sprintf(
-                '<h3>Hello, %s</h3>' .
+                '<h3>Hello!</h3>' .
                 '<p>Use the verification code below to complete your alumni registration.</p>' .
                 '<p style="font-size: 32px; font-weight: 700; letter-spacing: 0.3rem; margin: 24px 0;">%s</p>' .
                 '<p>This code expires in 10 minutes.</p>' .
                 '<p>If you did not start this registration, you can ignore this message.</p>',
-                htmlspecialchars($draft->getFirstName(), ENT_QUOTES, 'UTF-8'),
                 htmlspecialchars($otpCode, ENT_QUOTES, 'UTF-8')
             ));
 

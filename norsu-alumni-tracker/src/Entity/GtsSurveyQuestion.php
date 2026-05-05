@@ -33,6 +33,9 @@ class GtsSurveyQuestion
     #[ORM\Column]
     private bool $isActive = true;
 
+    #[ORM\Column]
+    private bool $isRequired = false;
+
     #[ORM\ManyToOne(inversedBy: 'questions')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?GtsSurveyTemplate $surveyTemplate = null;
@@ -110,6 +113,18 @@ class GtsSurveyQuestion
     public function setIsActive(bool $isActive): static
     {
         $this->isActive = $isActive;
+
+        return $this;
+    }
+
+    public function isRequired(): bool
+    {
+        return $this->isRequired;
+    }
+
+    public function setIsRequired(bool $isRequired): static
+    {
+        $this->isRequired = $isRequired;
 
         return $this;
     }

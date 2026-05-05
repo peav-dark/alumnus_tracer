@@ -34,9 +34,19 @@ class GoogleOnboardingGateListener
             return;
         }
 
+        // NEVER intercept API requests — the frontend handles onboarding via modals
+        if (str_starts_with($request->getPathInfo(), '/api/')) {
+            return;
+        }
+
         $user = $this->security->getUser();
 
         if (!$user instanceof User || !$this->googleOnboardingService->needsOnboarding($user)) {
+            return;
+        }
+
+        // Users who need student linking use the frontend modal instead
+        if ($user->getNeedsStudentLink()) {
             return;
         }
 

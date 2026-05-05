@@ -8,6 +8,7 @@ import {
   syncAuthStateFromApi,
   type AccountSettings,
 } from "@/lib/public-auth";
+import { StudentLinkModal } from "@/components/alumni-system/student-link-modal";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useState } from "react";
 import { Checkbox } from "../FormElements/checkbox";
@@ -31,6 +32,7 @@ export default function SigninWithPassword({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showStudentLink, setShowStudentLink] = useState(false);
   const isBusy = loading || Boolean(success);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,6 +76,15 @@ export default function SigninWithPassword({
       }
 
       const isAlumni = Boolean(body.user && isAlumniAccount(body.user));
+
+      // Check if user needs to link their student record (alumni only)
+      const userObj = body.user as Record<string, unknown> | null;
+      if (isAlumni && userObj?.needsStudentLink === true) {
+        setShowStudentLink(true);
+        setLoading(false);
+        return;
+      }
+
       const from = searchParams.get("from");
       const nextPath =
         getSafeRedirectPath(from, isAlumni) ??
@@ -85,8 +96,11 @@ export default function SigninWithPassword({
 
       window.setTimeout(() => {
         onSuccess?.();
-        router.push(nextPath);
-        router.refresh();
+        // Hard navigation ensures the browser sends the fresh auth cookie
+        // and the server renders the page with full authentication context.
+        // Using router.push/replace can serve stale RSC payloads from the
+        // pre-login cache, causing 401 redirects back to login.
+        window.location.href = nextPath;
       }, 700);
     } catch {
       setError("Unable to reach the API. Please check the backend server.");
@@ -95,7 +109,7 @@ export default function SigninWithPassword({
     }
   };
 
-  return (
+  const formContent = (
     <form onSubmit={handleSubmit} className="relative" aria-busy={isBusy}>
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[28px] bg-white/80 backdrop-blur-[2px] dark:bg-slate-950/70">
@@ -192,6 +206,19 @@ export default function SigninWithPassword({
         </div>
       </fieldset>
     </form>
+  );
+
+  return (
+    <>
+      {formContent}
+      {showStudentLink && (
+        <StudentLinkModal
+          onLinked={() => {
+            window.location.href = "/profile";
+          }}
+        />
+      )}
+    </>
   );
 }
 

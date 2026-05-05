@@ -7,6 +7,7 @@ import {
   setStoredAuthState,
   type AccountSettings,
 } from "@/lib/public-auth";
+import { StudentLinkModal } from "@/components/alumni-system/student-link-modal";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 
@@ -54,8 +55,9 @@ function GoogleCallback() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Completing Google sign-in...");
-  const [status, setStatus] = useState<"loading" | "error" | "onboarding">("loading");
+  const [status, setStatus] = useState<"loading" | "error" | "onboarding" | "needsStudentLink">("loading");
   const [requiresOnboarding, setRequiresOnboarding] = useState(false);
+  const [needsStudentLink, setNeedsStudentLink] = useState(false);
   const [onboardingContext, setOnboardingContext] = useState<GoogleOnboardingContext | null>(null);
   const [form, setForm] = useState<GoogleOnboardingForm>(emptyOnboardingForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -63,6 +65,7 @@ function GoogleCallback() {
   const token = searchParams.get("token");
   const error = searchParams.get("error");
   const onboarding = searchParams.get("onboarding") === "1";
+  const needsStudentLinkParam = searchParams.get("needsStudentLink") === "1";
   const from = searchParams.get("from");
 
   useEffect(() => {
@@ -117,6 +120,14 @@ function GoogleCallback() {
           return;
         }
 
+        if (needsStudentLinkParam) {
+          // Redirect to profile — the layout will detect needsStudentLink
+          // and show the Student Link Modal with proper auth context.
+          // This param is only set by the backend for alumni users.
+          window.location.href = "/profile?needsStudentLink=1";
+          return;
+        }
+
         router.replace(
           getSafeRedirectPath(from, isAlumni) ??
             getSafeRedirectPath(body.redirectPath) ??
@@ -141,7 +152,7 @@ function GoogleCallback() {
     return () => {
       active = false;
     };
-  }, [error, from, onboarding, router, token]);
+  }, [error, from, needsStudentLinkParam, onboarding, router, token]);
 
   async function loadOnboardingContext(active = true) {
     const response = await fetch("/api/account/google-onboarding", {
@@ -234,6 +245,15 @@ function GoogleCallback() {
           context={onboardingContext}
           onChange={setForm}
           onSubmit={submitOnboarding}
+        />
+      )}
+
+      {needsStudentLink && (
+        <StudentLinkModal
+          onLinked={() => {
+            router.replace(getSafeRedirectPath(from, true) ?? "/profile");
+            router.refresh();
+          }}
         />
       )}
     </main>

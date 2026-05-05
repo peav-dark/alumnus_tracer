@@ -3,12 +3,10 @@
 namespace App\Controller;
 
 use App\Entity\RegistrationDraft;
-use App\Repository\QrRegistrationBatchRepository;
 use App\Service\NotificationService;
 use App\Service\RegistrationDraftService;
 use App\Service\RegistrationOtpService;
 use App\Service\RegistrationValidationException;
-use App\Service\SystemSettingsService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,32 +15,18 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/register')]
 final class RegistrationApiController extends AbstractController
 {
-    #[Route('/options', name: 'api_register_options', methods: ['GET'])]
-    public function options(QrRegistrationBatchRepository $batchRepository, SystemSettingsService $systemSettings): JsonResponse
-    {
-        return $this->json([
-            'publicSignupEnabled' => $systemSettings->isPublicSignupEnabled(),
-            'batchYears' => array_map(
-                static fn ($batch): int => $batch->getBatchYear(),
-                $batchRepository->findOpenOrdered(),
-            ),
-        ]);
-    }
-
+    /**
+     * POST /api/register
+     *
+     * Accepts: email, password, confirmPassword, dataPrivacyConsent
+     * Creates a RegistrationDraft and sends an OTP email.
+     */
     #[Route('', name: 'api_register_create', methods: ['POST'])]
     public function create(
         Request $request,
         RegistrationDraftService $draftService,
         NotificationService $notifier,
-        SystemSettingsService $systemSettings,
     ): JsonResponse {
-        if (!$systemSettings->isPublicSignupEnabled()) {
-            return $this->json([
-                'message' => 'Public sign-up is currently disabled. Please register through an official QR registration link.',
-                'errors' => ['form' => 'Public sign-up is currently disabled.'],
-            ], 403);
-        }
-
         $payload = $this->jsonPayload($request);
         $password = (string) ($payload['password'] ?? '');
         $confirmPassword = (string) ($payload['confirmPassword'] ?? '');
@@ -60,11 +44,7 @@ final class RegistrationApiController extends AbstractController
         try {
             $draftResult = $draftService->createManualDraft([
                 'email' => (string) ($payload['email'] ?? ''),
-                'studentId' => (string) ($payload['studentId'] ?? ''),
-                'firstName' => (string) ($payload['firstName'] ?? ''),
-                'lastName' => (string) ($payload['lastName'] ?? ''),
                 'plainPassword' => $password,
-                'yearGraduated' => is_numeric($payload['yearGraduated'] ?? null) ? (int) $payload['yearGraduated'] : null,
                 'dpaConsent' => true,
             ]);
 
@@ -95,67 +75,12 @@ final class RegistrationApiController extends AbstractController
         }
     }
 
-    #[Route('/qr/{batchYear<\d{4}>}', name: 'api_register_qr_create', methods: ['POST'])]
-    public function createFromQr(
-        int $batchYear,
-        Request $request,
-        RegistrationDraftService $draftService,
-        NotificationService $notifier,
-    ): JsonResponse {
-        $payload = $this->jsonPayload($request);
-        $payload['yearGraduated'] = $batchYear;
-        $password = (string) ($payload['password'] ?? '');
-        $confirmPassword = (string) ($payload['confirmPassword'] ?? '');
-
-        $fieldErrors = $this->validatePassword($password, $confirmPassword);
-
-        if (($payload['dataPrivacyConsent'] ?? false) !== true) {
-            $fieldErrors['dataPrivacyConsent'] = 'You must agree to the Data Privacy Act compliance statement.';
-        }
-
-        if ($fieldErrors !== []) {
-            return $this->json(['message' => 'Registration data is invalid.', 'errors' => $fieldErrors], 422);
-        }
-
-        try {
-            $draftResult = $draftService->createManualDraft([
-                'email' => (string) ($payload['email'] ?? ''),
-                'studentId' => (string) ($payload['studentId'] ?? ''),
-                'firstName' => (string) ($payload['firstName'] ?? ''),
-                'lastName' => (string) ($payload['lastName'] ?? ''),
-                'plainPassword' => $password,
-                'yearGraduated' => $batchYear,
-                'flowType' => RegistrationDraft::FLOW_QR,
-                'dpaConsent' => true,
-            ]);
-
-            $otpSent = true;
-
-            try {
-                $notifier->sendRegistrationOtp($draftResult['draft'], $draftResult['otpCode']);
-            } catch (\Throwable) {
-                $otpSent = false;
-            }
-
-            /** @var RegistrationDraft $draft */
-            $draft = $draftResult['draft'];
-
-            return $this->json([
-                'draftId' => $draft->getId(),
-                'email' => $draft->getEmail(),
-                'otpSent' => $otpSent,
-                'message' => $otpSent
-                    ? 'We sent a verification code to your email.'
-                    : 'Registration draft was saved, but the verification code could not be sent yet.',
-            ], 201);
-        } catch (RegistrationValidationException $exception) {
-            return $this->json([
-                'message' => 'Registration data is invalid.',
-                'errors' => $exception->getFieldErrors(),
-            ], 422);
-        }
-    }
-
+    /**
+     * POST /api/register/verify-email
+     *
+     * Accepts: draftId, otpCode
+     * Verifies the OTP and creates the User account.
+     */
     #[Route('/verify-email', name: 'api_register_verify_email', methods: ['POST'])]
     public function verifyEmail(
         Request $request,
@@ -198,9 +123,7 @@ final class RegistrationApiController extends AbstractController
             }
 
             return $this->json([
-                'message' => $registeredUser->getAccountStatus() === 'active'
-                    ? 'Email verified successfully. Your alumni account is now active.'
-                    : 'Email verified successfully. Your registration is now awaiting approval.',
+                'message' => 'Email verified successfully. Your alumni account is now active. Please log in to link your student record.',
                 'accountStatus' => $registeredUser->getAccountStatus(),
             ]);
         } catch (RegistrationValidationException $exception) {
@@ -211,6 +134,12 @@ final class RegistrationApiController extends AbstractController
         }
     }
 
+    /**
+     * POST /api/register/resend-otp
+     *
+     * Accepts: draftId
+     * Reissues a new OTP and sends it via email.
+     */
     #[Route('/resend-otp', name: 'api_register_resend_otp', methods: ['POST'])]
     public function resendOtp(
         Request $request,

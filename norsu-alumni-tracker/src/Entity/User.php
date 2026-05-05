@@ -96,6 +96,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
     private bool $requiresOnboarding = false;
 
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => true])]
+    private bool $needsStudentLink = true;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $lastLogin = null;
 
@@ -297,6 +300,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setRequiresOnboarding(bool $requiresOnboarding): static
     {
         $this->requiresOnboarding = $requiresOnboarding;
+
+        return $this;
+    }
+
+    public function getNeedsStudentLink(): bool { return $this->needsStudentLink; }
+    public function setNeedsStudentLink(bool $needsStudentLink): static
+    {
+        $this->needsStudentLink = $needsStudentLink;
 
         return $this;
     }

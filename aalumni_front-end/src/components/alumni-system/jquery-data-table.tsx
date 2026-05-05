@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type JQueryDataTableFilter = {
   id: string;
@@ -30,51 +30,9 @@ type JQueryDataTableProps = JQueryDataTableOptions & {
   children: ReactNode;
 };
 
-type DataTableApi = {
-  search: (term: string) => DataTableApi;
-  column: (index: number) => {
-    search: (
-      term: string,
-      regex?: boolean,
-      smart?: boolean,
-      caseInsensitive?: boolean,
-    ) => DataTableApi;
-  };
-  page: {
-    len: (length: number) => DataTableApi;
-  };
-  draw: () => DataTableApi;
-  destroy: () => void;
-};
-
-type JQueryDataTableFactory = new (
-  table: HTMLTableElement,
-  options: Record<string, unknown>,
-) => DataTableApi;
-
-declare global {
-  interface Window {
-    jQuery?: unknown;
-    $?: unknown;
-    DataTable?: JQueryDataTableFactory;
-  }
-}
-
-const JQUERY_SCRIPT_ID = "jquery-datatables-jquery";
-const DATATABLES_SCRIPT_ID = "jquery-datatables-core";
-const DATATABLES_STYLE_ID = "jquery-datatables-style";
-const JQUERY_SRC = "https://code.jquery.com/jquery-3.7.1.min.js";
-const DATATABLES_SRC =
-  "https://cdn.datatables.net/2.0.8/js/dataTables.min.js";
-const DATATABLES_STYLE =
-  "https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.min.css";
-
-let assetsPromise: Promise<void> | null = null;
-
 export function JQueryDataTable({
   children,
   pageLength = 10,
-  order = [],
   searchable = true,
   paging = true,
   info = true,
@@ -82,133 +40,111 @@ export function JQueryDataTable({
   compactFilters = false,
   compactFilterGridTemplate,
 }: JQueryDataTableProps) {
-  // Ref used only to snapshot the initial table HTML before handing off to DataTables.
-  const snapshotRef = useRef<HTMLDivElement | null>(null);
-  // Ref for the container that holds the frozen HTML — React never touches its children.
-  const tableContainerRef = useRef<HTMLDivElement | null>(null);
-  const dataTableRef = useRef<DataTableApi | null>(null);
-  const tableId = useId().replace(/:/g, "");
-
-  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const [activePageLength, setActivePageLength] = useState(pageLength);
-  const [isTableReady, setIsTableReady] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalVisible, setTotalVisible] = useState(0);
 
-  // Snapshot the rendered table HTML and freeze it so React never reconciles
-  // the nodes that DataTables will mutate.
-  const [frozenHtml, setFrozenHtml] = useState<string | null>(null);
+  // Apply search/filter/pagination by toggling the native `hidden` attribute on
+  // <tr> elements.  We never replace or clone DOM nodes — React still owns the
+  // entire tree and all onClick handlers remain live.
+  const applyVisibility = useCallback(() => {
+    if (!wrapperRef.current) return;
 
-  // Step 1 — after the hidden children div mounts, grab its inner HTML once.
-  useEffect(() => {
-    if (frozenHtml !== null || !snapshotRef.current) return;
-    const table = snapshotRef.current.querySelector("table");
-    if (table) {
-      setFrozenHtml(table.outerHTML);
-    }
-  // Only run once — frozenHtml starts as null and we set it here.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const tbody = wrapperRef.current.querySelector("tbody");
+    if (!tbody) return;
 
-  // Step 2 — once the frozen HTML is in the DOM, initialise DataTables on it.
-  useEffect(() => {
-    if (frozenHtml === null) return;
+    const rows = Array.from(tbody.querySelectorAll<HTMLTableRowElement>(":scope > tr"));
 
-    let dataTable: DataTableApi | null = null;
-    let disposed = false;
+    const search = searchTerm.toLowerCase().trim();
 
-    loadDataTableAssets().then(() => {
-      if (disposed || !tableContainerRef.current || !window.DataTable) {
-        return;
+    // Determine which rows match the search + filter criteria.
+    const matching: HTMLTableRowElement[] = [];
+
+    for (const row of rows) {
+      const cells = Array.from(row.querySelectorAll<HTMLElement>("td"));
+
+      // Global search: any cell contains the term.
+      if (search) {
+        const rowText = cells.map((c) => c.textContent ?? "").join(" ").toLowerCase();
+        if (!rowText.includes(search)) {
+          row.hidden = true;
+          continue;
+        }
       }
 
-      const table = tableContainerRef.current.querySelector("table");
-      if (!table) return;
+      // Column-level filters.
+      let filtered = false;
+      for (const filter of filters) {
+        const value = activeFilters[filter.id] ?? "";
+        if (!value) continue;
+        const cellText = (cells[filter.column]?.textContent ?? "").trim();
+        if (filter.match === "exact") {
+          if (cellText !== value) { filtered = true; break; }
+        } else {
+          if (!cellText.toLowerCase().includes(value.toLowerCase())) { filtered = true; break; }
+        }
+      }
 
-      table.id ||= `datatable-${tableId}`;
-      table.classList.add("display", "w-full");
-
-      dataTable = new window.DataTable(table, {
-        destroy: true,
-        pageLength,
-        order,
-        searching: searchable,
-        paging,
-        info,
-        autoWidth: false,
-        layout: {
-          topStart: null,
-          topEnd: null,
-        },
-        language: {
-          search: "",
-          searchPlaceholder: "Search table...",
-          lengthMenu: "Show _MENU_ entries",
-          emptyTable: "No records available",
-          zeroRecords: "No matching records found",
-        },
-      });
-
-      dataTableRef.current = dataTable;
-      setIsTableReady(true);
-    });
-
-    return () => {
-      disposed = true;
-      setIsTableReady(false);
-      dataTableRef.current = null;
-      dataTable?.destroy();
-    };
-  // Re-initialise only when the frozen snapshot or core options change.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [frozenHtml, info, order, pageLength, paging, searchable, tableId]);
-
-  // Step 3 — apply filter/search/page-length changes to the live DataTable.
-  useEffect(() => {
-    if (!isTableReady || !dataTableRef.current) return;
-
-    const dataTable = dataTableRef.current;
-    dataTable.search(searchTerm);
-
-    for (const filter of filters) {
-      const value = activeFilters[filter.id] ?? "";
-
-      if (filter.match === "exact" && value) {
-        dataTable
-          .column(filter.column)
-          .search(`^\\s*${escapeRegex(value)}\\s*$`, true, false, true);
+      if (filtered) {
+        row.hidden = true;
         continue;
       }
 
-      dataTable.column(filter.column).search(value);
+      matching.push(row);
     }
 
-    dataTable.page.len(activePageLength).draw();
-  }, [activeFilters, activePageLength, filters, isTableReady, searchTerm]);
+    setTotalVisible(matching.length);
+
+    // Clamp current page if needed.
+    const totalPages = Math.max(1, Math.ceil(matching.length / activePageLength));
+    const safePage = Math.min(currentPage, totalPages);
+
+    const start = (safePage - 1) * activePageLength;
+    const end = start + activePageLength;
+
+    // Show only the paginated slice of matching rows.
+    for (let i = 0; i < matching.length; i++) {
+      matching[i].hidden = !paging || (i >= start && i < end) ? false : true;
+    }
+  }, [searchTerm, activeFilters, filters, activePageLength, currentPage, paging]);
+
+  // Run visibility logic after every relevant state change.
+  // We use a short timeout so React has finished painting the children first.
+  useEffect(() => {
+    const id = setTimeout(applyVisibility, 0);
+    return () => clearTimeout(id);
+  }, [applyVisibility]);
+
+  // Also re-run when children change (e.g. after router.refresh() adds new rows).
+  const prevChildrenRef = useRef<ReactNode>(null);
+  useEffect(() => {
+    if (prevChildrenRef.current !== children) {
+      prevChildrenRef.current = children;
+      const id = setTimeout(applyVisibility, 0);
+      return () => clearTimeout(id);
+    }
+  }, [children, applyVisibility]);
 
   function updateFilter(filter: JQueryDataTableFilter, value: string) {
-    setActiveFilters((current) => ({
-      ...current,
-      [filter.id]: value,
-    }));
+    setCurrentPage(1);
+    setActiveFilters((prev) => ({ ...prev, [filter.id]: value }));
   }
 
   function clearFilters() {
-    setActiveFilters({});
+    setCurrentPage(1);
     setSearchTerm("");
+    setActiveFilters({});
   }
 
-  function updateSearch(value: string) {
-    setSearchTerm(value);
-  }
-
-  function updatePageLength(value: string) {
-    setActivePageLength(Number(value));
-  }
+  const totalPages = Math.max(1, Math.ceil(totalVisible / activePageLength));
+  const startRow = totalVisible === 0 ? 0 : (currentPage - 1) * activePageLength + 1;
+  const endRow = Math.min(currentPage * activePageLength, totalVisible);
 
   const wrapperStyle = compactFilterGridTemplate
-    ? ({
-        "--compact-filter-grid": compactFilterGridTemplate,
-      } as CSSProperties)
+    ? ({ "--compact-filter-grid": compactFilterGridTemplate } as CSSProperties)
     : undefined;
 
   return (
@@ -216,6 +152,7 @@ export function JQueryDataTable({
       className={`jquery-data-table${compactFilters ? " jquery-data-table--compact" : ""}`}
       style={wrapperStyle}
     >
+      {/* ── Filter bar ─────────────────────────────────────────────────────── */}
       {(filters.length > 0 || searchable) && (
         <div className="jquery-data-table__filters">
           {searchable && (
@@ -224,7 +161,7 @@ export function JQueryDataTable({
               <input
                 type="search"
                 value={searchTerm}
-                onChange={(event) => updateSearch(event.target.value)}
+                onChange={(e) => { setCurrentPage(1); setSearchTerm(e.target.value); }}
                 placeholder="Search table..."
               />
             </label>
@@ -234,13 +171,11 @@ export function JQueryDataTable({
               <span>{filter.label}</span>
               <select
                 value={activeFilters[filter.id] ?? ""}
-                onChange={(event) => updateFilter(filter, event.target.value)}
+                onChange={(e) => updateFilter(filter, e.target.value)}
               >
                 <option value="">{filter.placeholder}</option>
-                {filter.options.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
+                {filter.options.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </label>
@@ -250,103 +185,74 @@ export function JQueryDataTable({
               <span>Show</span>
               <select
                 value={activePageLength}
-                onChange={(event) => updatePageLength(event.target.value)}
+                onChange={(e) => { setCurrentPage(1); setActivePageLength(Number(e.target.value)); }}
               >
-                {[10, 25, 50, 100].map((length) => (
-                  <option key={length} value={length}>
-                    {length} entries
-                  </option>
+                {[10, 25, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n} entries</option>
                 ))}
               </select>
             </label>
           )}
-          <button type="button" onClick={clearFilters}>
-            Reset
-          </button>
+          <button type="button" onClick={clearFilters}>Reset</button>
         </div>
       )}
 
-      {/*
-        Hidden div — React renders children here so we can snapshot the HTML.
-        It is hidden with aria-hidden and display:none so it doesn't affect layout.
-      */}
-      {frozenHtml === null && (
-        <div ref={snapshotRef} aria-hidden="true" style={{ display: "none" }}>
-          {children}
-        </div>
-      )}
+      {/* ── Table (React fully owns this DOM — no DataTables involvement) ──── */}
+      <div ref={wrapperRef}>
+        {children}
+      </div>
 
-      {/*
-        Once we have the snapshot, render it via dangerouslySetInnerHTML so
-        React never touches those DOM nodes again — DataTables owns them now.
-      */}
-      {frozenHtml !== null && (
-        <div
-          ref={tableContainerRef}
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: frozenHtml }}
-        />
+      {/* ── Footer: info + pagination ───────────────────────────────────────── */}
+      {(info || paging) && (
+        <div className="jquery-data-table__footer">
+          {info && (
+            <p className="jquery-data-table__info">
+              {totalVisible === 0
+                ? "No matching records found"
+                : `Showing ${startRow}–${endRow} of ${totalVisible} entries`}
+            </p>
+          )}
+          {paging && totalPages > 1 && (
+            <div className="jquery-data-table__pagination">
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => Math.abs(p - currentPage) <= 2 || p === 1 || p === totalPages)
+                .reduce<(number | "…")[]>((acc, p, i, arr) => {
+                  if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("…");
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, i) =>
+                  p === "…" ? (
+                    <span key={`ellipsis-${i}`} className="jquery-data-table__page-ellipsis">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      type="button"
+                      className={currentPage === p ? "jquery-data-table__page--active" : ""}
+                      onClick={() => setCurrentPage(p as number)}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+              <button
+                type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
-}
-
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function loadDataTableAssets() {
-  if (assetsPromise) {
-    return assetsPromise;
-  }
-
-  assetsPromise = new Promise<void>((resolve, reject) => {
-    loadStyle(DATATABLES_STYLE_ID, DATATABLES_STYLE);
-    loadScript(JQUERY_SCRIPT_ID, JQUERY_SRC)
-      .then(() => loadScript(DATATABLES_SCRIPT_ID, DATATABLES_SRC))
-      .then(resolve)
-      .catch(reject);
-  });
-
-  return assetsPromise;
-}
-
-function loadStyle(id: string, href: string) {
-  if (document.getElementById(id)) {
-    return;
-  }
-
-  const link = document.createElement("link");
-  link.id = id;
-  link.rel = "stylesheet";
-  link.href = href;
-  document.head.appendChild(link);
-}
-
-function loadScript(id: string, src: string) {
-  return new Promise<void>((resolve, reject) => {
-    const existing = document.getElementById(id) as HTMLScriptElement | null;
-
-    if (existing?.dataset.loaded === "true") {
-      resolve();
-      return;
-    }
-
-    if (existing) {
-      existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(), { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = id;
-    script.src = src;
-    script.async = true;
-    script.onload = () => {
-      script.dataset.loaded = "true";
-      resolve();
-    };
-    script.onerror = () => reject(new Error(`Unable to load ${src}`));
-    document.body.appendChild(script);
-  });
 }

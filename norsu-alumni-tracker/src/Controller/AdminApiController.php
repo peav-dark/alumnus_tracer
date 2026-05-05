@@ -13,6 +13,7 @@ use App\Entity\GtsSurveyTemplate;
 use App\Entity\JobPosting;
 use App\Entity\Notification as AdminNotification;
 use App\Entity\QrRegistrationBatch;
+use App\Entity\StudentRecord;
 use App\Entity\SurveyCampaign;
 use App\Entity\SurveyInvitation;
 use App\Entity\User;
@@ -26,6 +27,7 @@ use App\Repository\GtsSurveyRepository;
 use App\Repository\GtsSurveyTemplateRepository;
 use App\Repository\JobPostingRepository;
 use App\Repository\QrRegistrationBatchRepository;
+use App\Repository\StudentRecordRepository;
 use App\Repository\SurveyCampaignRepository;
 use App\Repository\SurveyInvitationRepository;
 use App\Repository\UserRepository;
@@ -33,18 +35,33 @@ use App\Service\AuditLogger;
 use App\Service\GtsSurveyQuestionBank;
 use App\Service\GtsSurveyAnalyticsService;
 use App\Service\NotificationService;
+use App\Service\StudentRecordImportService;
 use App\Service\SurveyCampaignDispatchService;
+use App\Service\SurveyInvitationAssignmentService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Font;
+use PhpOffice\PhpSpreadsheet\Style\PatternFill;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+/**
+ * Central API controller for all admin-facing JSON endpoints.
+ *
+ * Provides CRUD operations for users, announcements, jobs, academic
+ * management (colleges & departments), QR registration, GTS surveys,
+ * campaigns, and audit logs.
+ */
 #[Route('/api/admin')]
 #[IsGranted('ROLE_ADMIN')]
 final class AdminApiController extends AbstractController
@@ -511,10 +528,18 @@ final class AdminApiController extends AbstractController
     }
 
     #[Route('/users/{id}/approve', name: 'api_admin_user_approve', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function approveUser(User $user, EntityManagerInterface $em, AuditLogger $audit, NotificationService $notifier): JsonResponse
+    public function approveUser(
+        User $user,
+        EntityManagerInterface $em,
+        AuditLogger $audit,
+        NotificationService $notifier,
+        SurveyInvitationAssignmentService $invitationAssignmentService,
+    ): JsonResponse
     {
         $user->setAccountStatus('active');
         $em->flush();
+
+        $invitationAssignmentService->assignForUser($user);
 
         $audit->log(
             AuditLog::ACTION_APPROVE_USER,
@@ -532,7 +557,12 @@ final class AdminApiController extends AbstractController
     }
 
     #[Route('/users/{id}/status', name: 'api_admin_user_status', methods: ['PATCH'], requirements: ['id' => '\d+'])]
-    public function updateUserStatus(User $user, Request $request, EntityManagerInterface $em): JsonResponse
+    public function updateUserStatus(
+        User $user,
+        Request $request,
+        EntityManagerInterface $em,
+        SurveyInvitationAssignmentService $invitationAssignmentService,
+    ): JsonResponse
     {
         $payload = $this->jsonPayload($request);
         $status = strtolower(trim((string) ($payload['status'] ?? '')));
@@ -544,14 +574,27 @@ final class AdminApiController extends AbstractController
         $user->setAccountStatus($status);
         $em->flush();
 
+        if ($status === 'active') {
+            $invitationAssignmentService->assignForUser($user);
+        }
+
         return $this->json(['item' => $this->serializeUser($user), 'message' => 'User status updated.']);
     }
 
     #[Route('/users/{id}/toggle-status', name: 'api_admin_user_toggle_status', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function toggleUserStatus(User $user, EntityManagerInterface $em): JsonResponse
+    public function toggleUserStatus(
+        User $user,
+        EntityManagerInterface $em,
+        SurveyInvitationAssignmentService $invitationAssignmentService,
+    ): JsonResponse
     {
-        $user->setAccountStatus($user->getAccountStatus() === 'active' ? 'inactive' : 'active');
+        $nextStatus = $user->getAccountStatus() === 'active' ? 'inactive' : 'active';
+        $user->setAccountStatus($nextStatus);
         $em->flush();
+
+        if ($nextStatus === 'active') {
+            $invitationAssignmentService->assignForUser($user);
+        }
 
         return $this->json(['item' => $this->serializeUser($user), 'message' => 'User status toggled.']);
     }
@@ -864,7 +907,7 @@ final class AdminApiController extends AbstractController
         $name = trim((string) ($payload['name'] ?? ''));
         $code = strtoupper(trim((string) ($payload['code'] ?? '')));
         $description = trim((string) ($payload['description'] ?? '')) ?: null;
-        $isActive = (bool) ($payload['isActive'] ?? true);
+        $isActive = isset($payload['isActive']) ? filter_var($payload['isActive'], FILTER_VALIDATE_BOOL) : true;
         $errors = [];
 
         if ($name === '') { $errors['name'] = 'College name is required.'; }
@@ -893,7 +936,7 @@ final class AdminApiController extends AbstractController
         $name = trim((string) ($payload['name'] ?? ''));
         $code = strtoupper(trim((string) ($payload['code'] ?? '')));
         $description = trim((string) ($payload['description'] ?? '')) ?: null;
-        $isActive = (bool) ($payload['isActive'] ?? true);
+        $isActive = isset($payload['isActive']) ? filter_var($payload['isActive'], FILTER_VALIDATE_BOOL) : true;
         $errors = [];
 
         if ($name === '') { $errors['name'] = 'College name is required.'; }
@@ -911,18 +954,31 @@ final class AdminApiController extends AbstractController
             return $this->json(['message' => 'College data is invalid.', 'errors' => $errors], 422);
         }
 
-        $college->setName($name)->setCode($code)->setDescription($description)->setIsActive($isActive);
-        $em->flush();
-        $audit->log('update_college', 'College', $college->getId(), 'Updated college: ' . $college->getName());
+        try {
+            $college->setName($name)->setCode($code)->setDescription($description)->setIsActive($isActive);
+            $em->flush();
+            $audit->log('update_college', 'College', $college->getId(), 'Updated college: ' . $college->getName());
+        } catch (\Throwable $e) {
+            return $this->json(['message' => 'Failed to update college: ' . $e->getMessage()], 500);
+        }
 
         return $this->json(['item' => $this->serializeCollege($college), 'message' => 'College updated.']);
     }
 
     #[Route('/academic/colleges/{id}', name: 'api_admin_college_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
-    public function deleteCollege(College $college, EntityManagerInterface $em, AuditLogger $audit, NotificationService $notifications): JsonResponse
+    public function deleteCollege(College $college, Request $request, EntityManagerInterface $em, AuditLogger $audit, NotificationService $notifications): JsonResponse
     {
-        if ($college->getDepartments()->count() > 0) {
-            return $this->json(['message' => 'Cannot delete a college that has departments. Remove or reassign them first.'], 409);
+        $deptCount = $college->getDepartments()->count();
+        if ($deptCount > 0) {
+            return $this->json([
+                'message' => sprintf(
+                    'Cannot delete "%s" because it still has %d department%s. Delete or reassign all departments first.',
+                    $college->getName(),
+                    $deptCount,
+                    $deptCount === 1 ? '' : 's'
+                ),
+                'departmentCount' => $deptCount,
+            ], 409);
         }
         $id = $college->getId();
         $name = $college->getName();
@@ -941,7 +997,7 @@ final class AdminApiController extends AbstractController
         $name = trim((string) ($payload['name'] ?? ''));
         $code = strtoupper(trim((string) ($payload['code'] ?? '')));
         $description = trim((string) ($payload['description'] ?? '')) ?: null;
-        $isActive = (bool) ($payload['isActive'] ?? true);
+        $isActive = isset($payload['isActive']) ? filter_var($payload['isActive'], FILTER_VALIDATE_BOOL) : true;
         $collegeId = is_numeric($payload['collegeId'] ?? null) ? (int) $payload['collegeId'] : null;
         $errors = [];
 
@@ -950,13 +1006,14 @@ final class AdminApiController extends AbstractController
         elseif ($departmentRepo->findOneBy(['code' => $code]) !== null) { $errors['code'] = 'This code is already in use.'; }
         if ($name !== '' && $departmentRepo->findOneBy(['name' => $name]) !== null) { $errors['name'] = 'A department with this name already exists.'; }
 
-        $college = $collegeId !== null ? $collegeRepo->find($collegeId) : null;
+        $college = ($collegeId !== null && $collegeId > 0) ? $collegeRepo->find($collegeId) : null;
         if ($college === null) { $errors['collegeId'] = 'Please select a valid college.'; }
 
         if ($errors !== []) {
             return $this->json(['message' => 'Department data is invalid.', 'errors' => $errors], 422);
         }
 
+        /** @var College $college */
         $department = (new Department())->setName($name)->setCode($code)->setDescription($description)->setIsActive($isActive)->setCollege($college);
         $em->persist($department);
         $em->flush();
@@ -974,7 +1031,7 @@ final class AdminApiController extends AbstractController
         $name = trim((string) ($payload['name'] ?? ''));
         $code = strtoupper(trim((string) ($payload['code'] ?? '')));
         $description = trim((string) ($payload['description'] ?? '')) ?: null;
-        $isActive = (bool) ($payload['isActive'] ?? true);
+        $isActive = isset($payload['isActive']) ? filter_var($payload['isActive'], FILTER_VALIDATE_BOOL) : true;
         $collegeId = is_numeric($payload['collegeId'] ?? null) ? (int) $payload['collegeId'] : null;
         $errors = [];
 
@@ -989,16 +1046,21 @@ final class AdminApiController extends AbstractController
             if ($existing !== null && $existing->getId() !== $department->getId()) { $errors['name'] = 'A department with this name already exists.'; }
         }
 
-        $college = $collegeId !== null ? $collegeRepo->find($collegeId) : null;
+        $college = ($collegeId !== null && $collegeId > 0) ? $collegeRepo->find($collegeId) : null;
         if ($college === null) { $errors['collegeId'] = 'Please select a valid college.'; }
 
         if ($errors !== []) {
             return $this->json(['message' => 'Department data is invalid.', 'errors' => $errors], 422);
         }
 
-        $department->setName($name)->setCode($code)->setDescription($description)->setIsActive($isActive)->setCollege($college);
-        $em->flush();
-        $audit->log('update_department', 'Department', $department->getId(), 'Updated department: ' . $department->getName());
+        /** @var College $college */
+        try {
+            $department->setName($name)->setCode($code)->setDescription($description)->setIsActive($isActive)->setCollege($college);
+            $em->flush();
+            $audit->log('update_department', 'Department', $department->getId(), 'Updated department: ' . $department->getName());
+        } catch (\Throwable $e) {
+            return $this->json(['message' => 'Failed to update department: ' . $e->getMessage()], 500);
+        }
 
         return $this->json(['item' => $this->serializeDepartment($department), 'message' => 'Department updated.']);
     }
@@ -1454,6 +1516,178 @@ final class AdminApiController extends AbstractController
         ]);
     }
 
+    #[Route('/gts/responses/preview', name: 'api_admin_gts_responses_preview', methods: ['GET'])]
+    public function previewGtsResponsesExport(
+        Request $request,
+        GtsSurveyRepository $surveyRepo,
+        GtsSurveyQuestionBank $questionBank,
+    ): JsonResponse
+    {
+        $surveyId = $request->query->has('surveyId') ? $this->positiveInt($request->query->get('surveyId'), 0) : null;
+        $campaignId = $request->query->has('campaignId') ? $this->positiveInt($request->query->get('campaignId'), 0) : null;
+        $batchYear = $request->query->has('batchYear') ? $this->campaignTargetBatchYear($request->query->get('batchYear')) : null;
+        $college = $this->nullableTrimmedString($request->query->get('college') ?? null);
+        $course = $this->nullableTrimmedString($request->query->get('course') ?? null);
+        $search = trim((string) $request->query->get('q', ''));
+
+        $qb = $surveyRepo->createQueryBuilder('s')
+            ->leftJoin('s.user', 'u')
+            ->addSelect('u')
+            ->leftJoin('s.surveyTemplate', 't')
+            ->addSelect('t')
+            ->leftJoin('s.surveyInvitation', 'i')
+            ->addSelect('i')
+            ->leftJoin('i.campaign', 'c')
+            ->addSelect('c')
+            ->leftJoin('u.alumni', 'a')
+            ->addSelect('a')
+            ->orderBy('s.createdAt', 'DESC');
+
+        if ($search !== '') {
+            $qb->andWhere('s.name LIKE :responseSearch OR s.emailAddress LIKE :responseSearch OR u.firstName LIKE :responseSearch OR u.lastName LIKE :responseSearch OR u.email LIKE :responseSearch')
+                ->setParameter('responseSearch', '%' . $search . '%');
+        }
+
+        if ($surveyId !== null && $surveyId > 0) {
+            $qb->andWhere('t.id = :surveyId')
+                ->setParameter('surveyId', $surveyId);
+        }
+
+        if ($campaignId !== null && $campaignId > 0) {
+            $qb->andWhere('c.id = :campaignId')
+                ->setParameter('campaignId', $campaignId);
+        }
+
+        if ($batchYear !== null) {
+            $qb->andWhere('c.targetGraduationYears LIKE :batchYearNeedle')
+                ->setParameter('batchYearNeedle', '%"' . $batchYear . '"%');
+        }
+
+        if ($college !== null) {
+            $qb->andWhere('a.college = :college')
+                ->setParameter('college', $college);
+        }
+
+        if ($course !== null) {
+            $qb->andWhere('(a.course = :course OR a.degreeProgram = :course)')
+                ->setParameter('course', $course);
+        }
+
+        // Limit to 20 rows for preview
+        $qb->setMaxResults(20);
+        $responses = $qb->getQuery()->getResult();
+        $totalCount = $this->countFiltered($surveyRepo, $surveyId, $campaignId, $batchYear, $college, $course, $search);
+
+        return $this->json([
+            'items' => array_map(
+                fn (GtsSurvey $survey): array => $this->serializeGtsResponseRow($survey, $questionBank, $surveyRepo),
+                $responses,
+            ),
+            'totalCount' => $totalCount,
+            'previewCount' => count($responses),
+        ]);
+    }
+
+    #[Route('/gts/responses/export', name: 'api_admin_gts_responses_export', methods: ['GET'])]
+    public function exportGtsResponses(
+        Request $request,
+        GtsSurveyRepository $surveyRepo,
+        AlumniRepository $alumniRepo,
+        GtsSurveyQuestionBank $questionBank,
+    ): BinaryFileResponse
+    {
+        $surveyId = $request->query->has('surveyId') ? $this->positiveInt($request->query->get('surveyId'), 0) : null;
+        $campaignId = $request->query->has('campaignId') ? $this->positiveInt($request->query->get('campaignId'), 0) : null;
+        $batchYear = $request->query->has('batchYear') ? $this->campaignTargetBatchYear($request->query->get('batchYear')) : null;
+        $college = $this->nullableTrimmedString($request->query->get('college') ?? null);
+        $course = $this->nullableTrimmedString($request->query->get('course') ?? null);
+        $search = trim((string) $request->query->get('q', ''));
+
+        $qb = $surveyRepo->createQueryBuilder('s')
+            ->leftJoin('s.user', 'u')
+            ->addSelect('u')
+            ->leftJoin('s.surveyTemplate', 't')
+            ->addSelect('t')
+            ->leftJoin('s.surveyInvitation', 'i')
+            ->addSelect('i')
+            ->leftJoin('i.campaign', 'c')
+            ->addSelect('c')
+            ->leftJoin('u.alumni', 'a')
+            ->addSelect('a')
+            ->orderBy('s.createdAt', 'DESC');
+
+        if ($search !== '') {
+            $qb->andWhere('s.name LIKE :responseSearch OR s.emailAddress LIKE :responseSearch OR u.firstName LIKE :responseSearch OR u.lastName LIKE :responseSearch OR u.email LIKE :responseSearch')
+                ->setParameter('responseSearch', '%' . $search . '%');
+        }
+
+        if ($surveyId !== null && $surveyId > 0) {
+            $qb->andWhere('t.id = :surveyId')
+                ->setParameter('surveyId', $surveyId);
+        }
+
+        if ($campaignId !== null && $campaignId > 0) {
+            $qb->andWhere('c.id = :campaignId')
+                ->setParameter('campaignId', $campaignId);
+        }
+
+        if ($batchYear !== null) {
+            $qb->andWhere('c.targetGraduationYears LIKE :batchYearNeedle')
+                ->setParameter('batchYearNeedle', '%"' . $batchYear . '"%');
+        }
+
+        if ($college !== null) {
+            $qb->andWhere('a.college = :college')
+                ->setParameter('college', $college);
+        }
+
+        if ($course !== null) {
+            $qb->andWhere('(a.course = :course OR a.degreeProgram = :course)')
+                ->setParameter('course', $course);
+        }
+
+        $responses = $qb->getQuery()->getResult();
+
+        return $this->generateGtsResponsesExcel($responses, $questionBank, $surveyRepo);
+    }
+
+    #[Route('/gts/responses/filters', name: 'api_admin_gts_responses_filters', methods: ['GET'])]
+    public function getGtsResponseFilters(
+        GtsSurveyRepository $surveyRepo,
+    ): JsonResponse
+    {
+        // Get all distinct colleges from survey respondents
+        $collegesQb = $surveyRepo->createQueryBuilder('s')
+            ->select('DISTINCT a.college')
+            ->leftJoin('s.user', 'u')
+            ->leftJoin('u.alumni', 'a')
+            ->where('a.college IS NOT NULL')
+            ->orderBy('a.college', 'ASC');
+        
+        $colleges = array_map(
+            fn (array $row): string => $row['college'],
+            $collegesQb->getQuery()->getResult()
+        );
+
+        // Get all distinct courses/programs from survey respondents
+        $coursesQb = $surveyRepo->createQueryBuilder('s')
+            ->select('DISTINCT COALESCE(a.degreeProgram, a.course) as course')
+            ->leftJoin('s.user', 'u')
+            ->leftJoin('u.alumni', 'a')
+            ->where('a.degreeProgram IS NOT NULL OR a.course IS NOT NULL')
+            ->orderBy('course', 'ASC');
+
+        $courses = array_map(
+            fn (array $row): string => $row['course'],
+            $coursesQb->getQuery()->getResult()
+        );
+
+        return $this->json([
+            'colleges' => array_values(array_filter(array_unique($colleges))),
+            'courses' => array_values(array_filter(array_unique($courses))),
+        ]);
+    }
+
     #[Route('/gts/campaigns/preview', name: 'api_admin_gts_campaign_preview', methods: ['POST'])]
     public function previewGtsCampaignRecipients(Request $request, AlumniRepository $alumniRepo): JsonResponse
     {
@@ -1758,6 +1992,7 @@ final class AdminApiController extends AbstractController
         SurveyInvitationRepository $invitationRepo,
         EntityManagerInterface $em,
         AuditLogger $audit,
+        NotificationService $notifications,
     ): JsonResponse {
         if ($campaign->getStatus() === 'cancelled') {
             return $this->json([
@@ -2218,13 +2453,15 @@ final class AdminApiController extends AbstractController
         $section = trim((string) ($payload['section'] ?? 'General'));
         $sortOrder = is_numeric($payload['sortOrder'] ?? null) ? (int) $payload['sortOrder'] : 0;
         $optionsText = (string) ($payload['optionsText'] ?? '');
+        $hasRequiredFlag = array_key_exists('isRequired', $payload);
+        $isRequired = filter_var($payload['isRequired'] ?? false, FILTER_VALIDATE_BOOL);
         $errors = [];
 
         if ($questionText === '') {
             $errors['questionText'] = 'Please enter the question text.';
         }
 
-        if (!in_array($inputType, ['text', 'textarea', 'radio', 'checkbox', 'select', 'date', 'repeater'], true)) {
+        if (!in_array($inputType, ['text', 'textarea', 'radio', 'checkbox', 'select', 'date', 'repeater', 'location'], true)) {
             $errors['inputType'] = 'Input type is not supported.';
         }
 
@@ -2242,7 +2479,8 @@ final class AdminApiController extends AbstractController
             ->setSection($section !== '' ? $section : 'General')
             ->setSortOrder($sortOrder)
             ->setIsActive(filter_var($payload['isActive'] ?? true, FILTER_VALIDATE_BOOL))
-            ->setOptions($questionBank->parseOptionsCsv($inputType, $optionsText));
+            ->setOptions($questionBank->parseOptionsCsv($inputType, $optionsText))
+            ->setIsRequired(true);
 
         return [];
     }
@@ -2270,6 +2508,7 @@ final class AdminApiController extends AbstractController
             'options' => $question->getOptions(),
             'sortOrder' => $question->getSortOrder(),
             'isActive' => $question->isActive(),
+            'isRequired' => true,
         ];
     }
 
@@ -2296,6 +2535,7 @@ final class AdminApiController extends AbstractController
             'invitations' => [
                 'total' => $invitationRepo->countByCampaign($campaign),
                 'queued' => $invitationRepo->countByCampaignAndStatus($campaign, SurveyInvitation::STATUS_QUEUED),
+                'assigned' => $invitationRepo->countByCampaignAndStatus($campaign, SurveyInvitation::STATUS_ASSIGNED),
                 'sent' => $invitationRepo->countByCampaignAndStatus($campaign, SurveyInvitation::STATUS_SENT),
                 'opened' => $invitationRepo->countByCampaignAndStatus($campaign, SurveyInvitation::STATUS_OPENED),
                 'completed' => $invitationRepo->countByCampaignAndStatus($campaign, SurveyInvitation::STATUS_COMPLETED),
@@ -2303,6 +2543,57 @@ final class AdminApiController extends AbstractController
                 'failed' => $invitationRepo->countByCampaignAndStatus($campaign, SurveyInvitation::STATUS_FAILED),
             ],
         ];
+    }
+
+    private function countFiltered(
+        GtsSurveyRepository $surveyRepo,
+        ?int $surveyId,
+        ?int $campaignId,
+        ?int $batchYear,
+        ?string $college,
+        ?string $course,
+        string $search,
+    ): int
+    {
+        $qb = $surveyRepo->createQueryBuilder('s')
+            ->select('COUNT(s.id)')
+            ->leftJoin('s.user', 'u')
+            ->leftJoin('s.surveyTemplate', 't')
+            ->leftJoin('s.surveyInvitation', 'i')
+            ->leftJoin('i.campaign', 'c')
+            ->leftJoin('u.alumni', 'a');
+
+        if ($search !== '') {
+            $qb->andWhere('s.name LIKE :responseSearch OR s.emailAddress LIKE :responseSearch OR u.firstName LIKE :responseSearch OR u.lastName LIKE :responseSearch OR u.email LIKE :responseSearch')
+                ->setParameter('responseSearch', '%' . $search . '%');
+        }
+
+        if ($surveyId !== null && $surveyId > 0) {
+            $qb->andWhere('t.id = :surveyId')
+                ->setParameter('surveyId', $surveyId);
+        }
+
+        if ($campaignId !== null && $campaignId > 0) {
+            $qb->andWhere('c.id = :campaignId')
+                ->setParameter('campaignId', $campaignId);
+        }
+
+        if ($batchYear !== null) {
+            $qb->andWhere('c.targetGraduationYears LIKE :batchYearNeedle')
+                ->setParameter('batchYearNeedle', '%"' . $batchYear . '"%');
+        }
+
+        if ($college !== null) {
+            $qb->andWhere('a.college = :college')
+                ->setParameter('college', $college);
+        }
+
+        if ($course !== null) {
+            $qb->andWhere('(a.course = :course OR a.degreeProgram = :course)')
+                ->setParameter('course', $course);
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
     private function serializeGtsResponseRow(
@@ -2316,6 +2607,9 @@ final class AdminApiController extends AbstractController
         $campaign = $invitation?->getCampaign();
         $template = $survey->getSurveyTemplate();
         $targetBatchYear = $campaign?->getTargetBatchYear() ?? $survey->getUser()?->getAlumni()?->getYearGraduated();
+        $alumni = $survey->getUser()?->getAlumni();
+        $college = $alumni?->getCollege();
+        $course = $alumni?->getDegreeProgram() ?? $alumni?->getCourse();
 
         return [
             'id' => $survey->getId(),
@@ -2334,6 +2628,8 @@ final class AdminApiController extends AbstractController
             ] : null,
             'sourceLabel' => $campaign ? $campaign->getName() : 'Direct response',
             'targetBatchYear' => $targetBatchYear,
+            'college' => $college,
+            'course' => $course,
             'invitation' => $invitation ? [
                 'id' => $invitation->getId(),
                 'status' => $invitation->getStatus(),
@@ -2601,5 +2897,253 @@ final class AdminApiController extends AbstractController
     private function formatDate(?\DateTimeInterface $date, string $format = \DateTimeInterface::ATOM): ?string
     {
         return $date?->format($format);
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  STUDENT RECORDS (Import & Management)
+    // ══════════════════════════════════════════════════════════════
+
+    #[Route('/student-records', name: 'api_admin_student_records', methods: ['GET'])]
+    public function studentRecords(
+        Request $request,
+        StudentRecordRepository $studentRecordRepo,
+    ): JsonResponse {
+        $search = trim((string) $request->query->get('q', ''));
+        $claimStatus = trim((string) $request->query->get('status', ''));
+        $limit = min($this->positiveInt($request->query->get('limit'), 50), 200);
+        $offset = $this->nonNegativeInt($request->query->get('offset'), 0);
+
+        $records = $studentRecordRepo->findFiltered(
+            $search !== '' ? $search : null,
+            $claimStatus !== '' ? $claimStatus : null,
+            $limit,
+            $offset,
+        );
+
+        return $this->json([
+            'items' => array_map(fn (StudentRecord $sr): array => $this->serializeStudentRecord($sr), $records),
+            'meta' => [
+                'limit' => $limit,
+                'offset' => $offset,
+                'total' => $studentRecordRepo->count([]),
+                'totalUnclaimed' => $studentRecordRepo->countUnclaimed(),
+                'totalClaimed' => $studentRecordRepo->countClaimed(),
+            ],
+        ]);
+    }
+
+    #[Route('/student-records/stats', name: 'api_admin_student_records_stats', methods: ['GET'])]
+    public function studentRecordStats(StudentRecordRepository $studentRecordRepo): JsonResponse
+    {
+        return $this->json([
+            'total' => $studentRecordRepo->count([]),
+            'unclaimed' => $studentRecordRepo->countUnclaimed(),
+            'claimed' => $studentRecordRepo->countClaimed(),
+        ]);
+    }
+
+    #[Route('/student-records/import', name: 'api_admin_student_records_import', methods: ['POST'])]
+    public function importStudentRecords(
+        Request $request,
+        StudentRecordImportService $importService,
+        AuditLogger $audit,
+    ): JsonResponse {
+        $file = $request->files->get('file');
+
+        if (!$file instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+            return $this->json(['message' => 'Please upload a CSV file.', 'errors' => ['file' => 'No file was uploaded.']], 422);
+        }
+
+        $batchLabel = trim((string) $request->request->get('batchLabel', ''));
+        $result = $importService->importFromCsv($file, $batchLabel !== '' ? $batchLabel : null);
+
+        $audit->log(
+            'import_student_records',
+            'StudentRecord',
+            null,
+            sprintf(
+                'Imported student records via CSV: %d imported, %d updated, %d skipped, %d errors%s',
+                $result['imported'],
+                $result['updated'],
+                $result['skipped'],
+                count($result['errors']),
+                $batchLabel !== '' ? " (batch: {$batchLabel})" : '',
+            )
+        );
+
+        return $this->json([
+            'message' => sprintf(
+                'Import complete: %d imported, %d updated, %d skipped.',
+                $result['imported'],
+                $result['updated'],
+                $result['skipped'],
+            ),
+            'imported' => $result['imported'],
+            'updated' => $result['updated'],
+            'skipped' => $result['skipped'],
+            'errors' => $result['errors'],
+        ], count($result['errors']) > 0 && $result['imported'] === 0 && $result['updated'] === 0 ? 422 : 200);
+    }
+
+    #[Route('/student-records/{id}', name: 'api_admin_student_record_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function deleteStudentRecord(
+        StudentRecord $studentRecord,
+        EntityManagerInterface $em,
+        AuditLogger $audit,
+    ): JsonResponse {
+        if ($studentRecord->isClaimed()) {
+            return $this->json(['message' => 'Cannot delete a student record that has already been claimed by a user.'], 409);
+        }
+
+        $id = $studentRecord->getId();
+        $label = $studentRecord->getStudentId() . ' — ' . $studentRecord->getFullName();
+
+        $em->remove($studentRecord);
+        $em->flush();
+
+        $audit->log(
+            'delete_student_record',
+            'StudentRecord',
+            $id,
+            'Deleted student record through admin API: ' . $label,
+        );
+
+        return $this->json(['message' => 'Student record deleted.']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeStudentRecord(StudentRecord $record): array
+    {
+        $claimedBy = $record->getClaimedByUser();
+
+        return [
+            'id' => $record->getId(),
+            'studentId' => $record->getStudentId(),
+            'firstName' => $record->getFirstName(),
+            'middleName' => $record->getMiddleName(),
+            'lastName' => $record->getLastName(),
+            'fullName' => $record->getFullName(),
+            'college' => $record->getCollege(),
+            'department' => $record->getDepartment(),
+            'batchYear' => $record->getBatchYear(),
+            'claimed' => $record->isClaimed(),
+            'claimedBy' => $claimedBy !== null ? [
+                'id' => $claimedBy->getId(),
+                'fullName' => $claimedBy->getFullName(),
+                'email' => $claimedBy->getEmail(),
+            ] : null,
+            'claimedAt' => $this->formatDate($record->getClaimedAt()),
+            'importedAt' => $this->formatDate($record->getImportedAt()),
+            'importBatchLabel' => $record->getImportBatchLabel(),
+        ];
+    }
+
+    /**
+     * Generate an Excel file with filtered GTS survey responses.
+     *
+     * @param list<GtsSurvey> $responses
+     */
+    private function generateGtsResponsesExcel(
+        array $responses,
+        GtsSurveyQuestionBank $questionBank,
+        GtsSurveyRepository $surveyRepo,
+    ): BinaryFileResponse {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('GTS Responses');
+
+        // Define header style
+        $headerFill = new PatternFill();
+        $headerFill->setFillType(PatternFill::FILL_SOLID);
+        $headerFill->getStartColor()->setARGB('FF4472C4');
+
+        $headerFont = new Font();
+        $headerFont->setBold(true);
+        $headerFont->getColor()->setARGB('FFFFFFFF');
+
+        // Headers
+        $headers = [
+            'Respondent Name',
+            'Email',
+            'Survey',
+            'Campaign',
+            'Batch Year',
+            'College',
+            'Course/Program',
+            'Employment Status',
+            'Job Title',
+            'Company',
+            'Submitted At',
+            'Invitation Status',
+        ];
+
+        foreach ($headers as $col => $header) {
+            $cell = $sheet->getCellByColumnAndRow($col + 1, 1);
+            $cell->setValue($header);
+            $cell->getStyle()->setFill($headerFill);
+            $cell->getStyle()->setFont($headerFont);
+            $cell->getStyle()->getAlignment()->setHorizontal('center');
+        }
+
+        // Auto-adjust column widths
+        $sheet->getColumnDimensionByColumn(1)->setWidth(20);
+        $sheet->getColumnDimensionByColumn(2)->setWidth(25);
+        $sheet->getColumnDimensionByColumn(3)->setWidth(20);
+        $sheet->getColumnDimensionByColumn(4)->setWidth(20);
+        $sheet->getColumnDimensionByColumn(5)->setWidth(12);
+        $sheet->getColumnDimensionByColumn(6)->setWidth(20);
+        $sheet->getColumnDimensionByColumn(7)->setWidth(20);
+        $sheet->getColumnDimensionByColumn(8)->setWidth(18);
+        $sheet->getColumnDimensionByColumn(9)->setWidth(20);
+        $sheet->getColumnDimensionByColumn(10)->setWidth(20);
+        $sheet->getColumnDimensionByColumn(11)->setWidth(18);
+        $sheet->getColumnDimensionByColumn(12)->setWidth(18);
+
+        // Data rows
+        $row = 2;
+        foreach ($responses as $survey) {
+            $invitation = $this->resolveGtsResponseInvitation($survey, $surveyRepo);
+            $campaign = $invitation?->getCampaign();
+            $template = $survey->getSurveyTemplate();
+            $alumni = $survey->getUser()?->getAlumni();
+
+            $sheet->setCellValueByColumnAndRow(1, $row, $survey->getName());
+            $sheet->setCellValueByColumnAndRow(2, $row, $survey->getEmailAddress());
+            $sheet->setCellValueByColumnAndRow(3, $row, $template ? $template->getTitle() : 'Legacy GTS');
+            $sheet->setCellValueByColumnAndRow(4, $row, $campaign ? $campaign->getName() : 'Direct response');
+            $sheet->setCellValueByColumnAndRow(5, $row, $campaign?->getTargetBatchYear() ?? $alumni?->getYearGraduated());
+            $sheet->setCellValueByColumnAndRow(6, $row, $alumni?->getCollege());
+            $sheet->setCellValueByColumnAndRow(7, $row, $alumni?->getCourse() ?? $alumni?->getDegreeProgram());
+            $sheet->setCellValueByColumnAndRow(8, $row, $alumni?->getEmploymentStatus());
+            $sheet->setCellValueByColumnAndRow(9, $row, $alumni?->getJobTitle());
+            $sheet->setCellValueByColumnAndRow(10, $row, $alumni?->getCompanyName());
+            $sheet->setCellValueByColumnAndRow(11, $row, $this->formatDate($survey->getCreatedAt()));
+            $sheet->setCellValueByColumnAndRow(12, $row, $invitation?->getStatus() ?? 'N/A');
+
+            $row++;
+        }
+
+        // Write to temporary file
+        $tempFile = sys_get_temp_dir() . '/gts_responses_' . uniqid() . '.xlsx';
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($tempFile);
+
+        // Create binary file response
+        $response = new BinaryFileResponse($tempFile);
+        $response->setContentDisposition(
+            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            'gts-responses-' . date('Y-m-d-H-i-s') . '.xlsx'
+        );
+
+        // Delete temp file after sending
+        register_shutdown_function(static function () use ($tempFile): void {
+            if (file_exists($tempFile)) {
+                @unlink($tempFile);
+            }
+        });
+
+        return $response;
     }
 }

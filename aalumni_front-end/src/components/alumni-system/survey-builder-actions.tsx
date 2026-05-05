@@ -20,6 +20,7 @@ import type {
   SurveyQuestionsResponse,
   SurveyTemplate,
 } from "@/lib/api";
+import { DROPDOWN_PRESETS, PRESET_NAMES } from "@/lib/form-options";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
@@ -39,6 +40,7 @@ const inputTypes = [
   "select",
   "date",
   "repeater",
+  "location",
 ];
 
 export function CreateSurveyTemplateAction() {
@@ -659,6 +661,7 @@ function SurveyQuestionDialog({
     optionsText: optionsToText(question?.inputType ?? "text", question?.options),
     sortOrder: String(question?.sortOrder ?? 0),
     isActive: question?.isActive ?? true,
+    isRequired: question?.isRequired ?? true,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -673,6 +676,7 @@ function SurveyQuestionDialog({
       optionsText: optionsToText(question?.inputType ?? "text", question?.options),
       sortOrder: String(question?.sortOrder ?? 0),
       isActive: question?.isActive ?? true,
+      isRequired: question?.isRequired ?? true,
     });
     setError("");
     setFieldErrors({});
@@ -795,18 +799,75 @@ function SurveyQuestionDialog({
                 />
               </div>
 
-              <TextArea
-                label={form.inputType === "repeater" ? "Columns" : "Choices"}
-                value={form.optionsText}
-                rows={5}
-                onChange={(value) =>
-                  setForm((current) => ({ ...current, optionsText: value }))
-                }
-              />
-              {choiceHelpText(form.inputType) && (
-                <p className="-mt-2 text-sm font-medium text-dark-5 dark:text-dark-6">
-                  {choiceHelpText(form.inputType)}
-                </p>
+              <label className="flex items-center gap-2 text-sm font-medium text-dark dark:text-white">
+                <input
+                  type="checkbox"
+                  checked={form.isRequired}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      isRequired: event.target.checked,
+                    }))
+                  }
+                  className="size-4 rounded border-stroke text-primary focus:ring-primary dark:border-dark-3"
+                />
+                Required question
+              </label>
+
+              {form.inputType === "location" ? (
+                <div className="rounded-lg border border-primary/20 bg-primary/[0.04] px-4 py-3">
+                  <p className="text-sm font-semibold text-primary">
+                    📍 Philippine Address Picker
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-dark-5 dark:text-dark-6">
+                    This question will render as cascading dropdowns: Region → Province → City/Municipality → Barangay. No manual options needed.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {needsChoices(form.inputType) && (
+                    <div className="flex items-end gap-2">
+                      <label className="block flex-1">
+                        <span className="mb-2.5 block font-medium text-dark dark:text-white">
+                          Load Preset
+                        </span>
+                        <select
+                          value=""
+                          onChange={(event) => {
+                            const preset = DROPDOWN_PRESETS[event.target.value];
+                            if (preset) {
+                              setForm((current) => ({
+                                ...current,
+                                optionsText: preset.join("\n"),
+                              }));
+                            }
+                          }}
+                          className="w-full rounded-lg border border-stroke bg-transparent px-5 py-3 outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary"
+                        >
+                          <option value="">Choose a preset...</option>
+                          {PRESET_NAMES.map((name) => (
+                            <option key={name} value={name}>
+                              {name} ({DROPDOWN_PRESETS[name].length} options)
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  )}
+                  <TextArea
+                    label={form.inputType === "repeater" ? "Columns" : "Choices"}
+                    value={form.optionsText}
+                    rows={5}
+                    onChange={(value) =>
+                      setForm((current) => ({ ...current, optionsText: value }))
+                    }
+                  />
+                  {choiceHelpText(form.inputType) && (
+                    <p className="-mt-2 text-sm font-medium text-dark-5 dark:text-dark-6">
+                      {choiceHelpText(form.inputType)}
+                    </p>
+                  )}
+                </>
               )}
 
               <DialogFooter
@@ -1035,6 +1096,10 @@ function SurveyFormPreview({
                     className="font-semibold text-dark dark:text-white"
                   >
                     {question.questionText}
+                    {question.isRequired ? (
+                      <span className="ml-1 text-red" aria-hidden="true">*</span>
+                    ) : null}
+                    {question.isRequired ? <span className="sr-only">Required</span> : null}
                   </label>
                   {!question.isActive && (
                     <span className="w-fit rounded-full bg-red/[0.08] px-3 py-1 text-xs font-semibold text-red">
@@ -1144,6 +1209,26 @@ function QuestionPreviewField({ question }: { question: SurveyQuestion }) {
     );
   }
 
+  if (question.inputType === "location") {
+    return (
+      <div id={fieldId} className="grid gap-3 sm:grid-cols-2">
+        {["Region", "Province", "City / Municipality", "Barangay"].map((label) => (
+          <label key={label} className="block">
+            <span className="mb-1 block text-xs font-bold text-dark-5 dark:text-dark-6">
+              {label}
+            </span>
+            <select
+              disabled
+              className="min-h-11 w-full rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm text-dark-5 dark:border-dark-3 dark:bg-dark-2 dark:text-dark-6"
+            >
+              <option>Select {label}</option>
+            </select>
+          </label>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <input
       id={fieldId}
@@ -1152,6 +1237,10 @@ function QuestionPreviewField({ question }: { question: SurveyQuestion }) {
       className="w-full rounded-lg border border-stroke bg-gray-2 px-4 py-3 dark:border-dark-3 dark:bg-dark-2"
     />
   );
+}
+
+function needsChoices(inputType: string): boolean {
+  return ["radio", "checkbox", "select"].includes(inputType);
 }
 
 function IconButton({

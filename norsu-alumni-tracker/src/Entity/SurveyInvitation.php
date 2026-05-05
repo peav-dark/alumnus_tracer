@@ -14,6 +14,7 @@ use Doctrine\ORM\Mapping as ORM;
 class SurveyInvitation
 {
     public const STATUS_QUEUED    = 'queued';
+    public const STATUS_ASSIGNED  = 'assigned';
     public const STATUS_SENT      = 'sent';
     public const STATUS_OPENED    = 'opened';
     public const STATUS_COMPLETED = 'completed';

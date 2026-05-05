@@ -8,6 +8,7 @@ import {
 } from "@/components/alumni-system/ui";
 import { JQueryDataTable } from "@/components/alumni-system/jquery-data-table";
 import { VerificationActions } from "@/components/alumni-system/user-actions";
+import { StudentRecordsManager } from "@/components/alumni-system/student-records-manager";
 import {
   Table,
   TableBody,
@@ -16,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getAdminVerification } from "@/lib/api";
+import { getAdminVerification, getAdminStudentRecords } from "@/lib/api";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -24,14 +25,17 @@ export const metadata: Metadata = {
 };
 
 export default async function VerificationPage() {
-  const verification = await getAdminVerification();
+  const [verification, studentRecordsData] = await Promise.all([
+    getAdminVerification(),
+    getAdminStudentRecords(100),
+  ]);
   const pending = verification?.pending ?? [];
 
   return (
     <>
       <FeatureHeader
         title="Profile Verification"
-        description="Queue for checking new registrations before they are approved for alumni tracker access."
+        description="Queue for checking new registrations and manage imported student records for ID-based account linking."
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -106,6 +110,23 @@ export default async function VerificationPage() {
       ) : (
         <EmptyState title="Verification queue unavailable" />
       )}
+
+      {/* ── Student Records Section ── */}
+      <div className="mt-8">
+        <Panel title="Student Records">
+          <div className="p-5">
+            <StudentRecordsManager
+              initialRecords={studentRecordsData?.items ?? []}
+              initialMeta={{
+                total: studentRecordsData?.meta.total ?? 0,
+                totalUnclaimed: studentRecordsData?.meta.totalUnclaimed ?? 0,
+                totalClaimed: studentRecordsData?.meta.totalClaimed ?? 0,
+              }}
+            />
+          </div>
+        </Panel>
+      </div>
     </>
   );
 }
+

@@ -130,24 +130,7 @@ export function LandingHeroSection() {
                   Answer Survey
                 </Link>
               </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => openAuthModal("sign-up")}
-                  className="inline-flex h-12 w-full items-center justify-center rounded-md bg-white px-7 text-base font-semibold text-dark shadow-1 transition hover:bg-gray-2 sm:w-auto"
-                >
-                  Create Alumni Account
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openAuthModal("sign-in")}
-                  className="inline-flex h-12 w-full items-center justify-center rounded-md bg-white/12 px-7 text-base font-semibold text-white ring-1 ring-white/20 transition hover:bg-white hover:text-dark sm:w-auto"
-                >
-                  Login
-                </button>
-              </>
-            )}
+            ) : null}
           </div>
         </div>
 

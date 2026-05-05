@@ -201,6 +201,14 @@ function SurveyBadge({
     );
   }
 
+  if (normalized === "assigned") {
+    return (
+      <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase text-amber-700">
+        Assigned
+      </span>
+    );
+  }
+
   if (normalized === "expired") {
     return (
       <span className="inline-flex rounded-full bg-rose-100 px-3 py-1 text-xs font-bold uppercase text-rose-700">
@@ -225,7 +233,7 @@ function SurveyBadge({
 }
 
 function isActionableStatus(status: string) {
-  return ["queued", "sent", "opened"].includes(status.toLowerCase());
+  return ["queued", "assigned", "sent", "opened"].includes(status.toLowerCase());
 }
 
 function compareInvitationItems(a: InvitationItem, b: InvitationItem) {
@@ -244,7 +252,7 @@ function invitationStatusPriority(status: string) {
     return 0;
   }
 
-  if (normalized === "sent" || normalized === "queued") {
+  if (normalized === "sent" || normalized === "queued" || normalized === "assigned") {
     return 1;
   }
 

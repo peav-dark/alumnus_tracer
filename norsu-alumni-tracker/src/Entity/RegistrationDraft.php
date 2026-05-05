@@ -8,12 +8,10 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: RegistrationDraftRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_REGISTRATION_DRAFT_EMAIL', fields: ['email'])]
-#[ORM\UniqueConstraint(name: 'UNIQ_REGISTRATION_DRAFT_STUDENT_ID', fields: ['studentId'])]
 class RegistrationDraft
 {
     public const FLOW_MANUAL = 'manual';
     public const FLOW_GOOGLE = 'google';
-    public const FLOW_QR = 'qr';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -26,17 +24,17 @@ class RegistrationDraft
     #[ORM\Column(length: 180)]
     private string $email;
 
-    #[ORM\Column(length: 50)]
-    private string $studentId;
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $studentId = null;
 
-    #[ORM\Column(length: 255)]
-    private string $firstName;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $firstName = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $middleName = null;
 
-    #[ORM\Column(length: 255)]
-    private string $lastName;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $lastName = null;
 
     #[ORM\Column(nullable: true)]
     private ?int $yearGraduated = null;
@@ -107,26 +105,28 @@ class RegistrationDraft
         return $this;
     }
 
-    public function getStudentId(): string
+    public function getStudentId(): ?string
     {
         return $this->studentId;
     }
 
-    public function setStudentId(string $studentId): static
+    public function setStudentId(?string $studentId): static
     {
-        $this->studentId = trim($studentId);
+        $normalizedStudentId = trim((string) $studentId);
+        $this->studentId = $normalizedStudentId !== '' ? $normalizedStudentId : null;
 
         return $this;
     }
 
-    public function getFirstName(): string
+    public function getFirstName(): ?string
     {
         return $this->firstName;
     }
 
-    public function setFirstName(string $firstName): static
+    public function setFirstName(?string $firstName): static
     {
-        $this->firstName = trim($firstName);
+        $normalizedFirstName = trim((string) $firstName);
+        $this->firstName = $normalizedFirstName !== '' ? $normalizedFirstName : null;
 
         return $this;
     }
@@ -144,14 +144,15 @@ class RegistrationDraft
         return $this;
     }
 
-    public function getLastName(): string
+    public function getLastName(): ?string
     {
         return $this->lastName;
     }
 
-    public function setLastName(string $lastName): static
+    public function setLastName(?string $lastName): static
     {
-        $this->lastName = trim($lastName);
+        $normalizedLastName = trim((string) $lastName);
+        $this->lastName = $normalizedLastName !== '' ? $normalizedLastName : null;
 
         return $this;
     }

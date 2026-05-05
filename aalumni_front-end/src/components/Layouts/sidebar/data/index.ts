@@ -48,10 +48,6 @@ export const NAV_DATA = [
             title: "Job Postings",
             url: "/jobs",
           },
-          {
-            title: "QR Registration",
-            url: "/qr-registration",
-          },
         ],
       },
       {

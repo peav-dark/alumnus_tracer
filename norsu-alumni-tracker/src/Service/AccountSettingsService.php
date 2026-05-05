@@ -234,6 +234,7 @@ class AccountSettingsService
             },
             'hasAlumniRecord' => $alumni instanceof Alumni,
             'alumni' => $alumni instanceof Alumni ? $this->serializeAlumni($alumni) : null,
+            'needsStudentLink' => $user->getNeedsStudentLink(),
             'profileImage' => $profileImage,
             'profileImageUrl' => $profileImage ? rtrim($baseUrl, '/') . '/uploads/profile/' . $profileImage : null,
         ];

@@ -167,34 +167,7 @@ export function PublicAuthModal({
                 />
               ) : publicSignupEnabled ? (
                 <RegisterForm onRequestSignIn={() => onViewChange("sign-in")} />
-              ) : (
-                <div className="rounded-[24px] border border-stroke bg-gray-1 p-6 text-center dark:border-dark-3 dark:bg-dark-2">
-                  <div className="mx-auto mb-4 grid size-16 place-items-center rounded-full bg-blue-light-5 text-blue-dark">
-                    <svg className="size-8" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                      <path
-                        d="M4.167 4.167h4.166v4.166H4.167V4.167ZM11.667 4.167h4.166v4.166h-4.166V4.167ZM4.167 11.667h4.166v4.166H4.167v-4.166ZM11.667 11.667h1.666M15.833 11.667v1.666M11.667 15.833h4.166"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-bold text-dark dark:text-white">
-                    QR-only registration
-                  </h3>
-                  <p className="mt-3 text-sm font-medium leading-6 text-dark-5 dark:text-dark-6">
-                    Use an official QR invitation from the alumni office.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => onViewChange("sign-in")}
-                    className="mt-6 inline-flex rounded-xl bg-blue-dark px-5 py-3 font-semibold text-white transition hover:bg-blue"
-                  >
-                    Back to Login
-                  </button>
-                </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

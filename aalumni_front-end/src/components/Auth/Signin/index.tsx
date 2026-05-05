@@ -46,11 +46,7 @@ export default function Signin({
             </Link>
           )}
         </div>
-      ) : (
-        <div className="rounded-[22px] bg-blue-light-5 px-4 py-4 text-center text-sm font-medium text-blue-dark">
-          Alumni sign-up is QR-only. Please scan an official registration QR code.
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }

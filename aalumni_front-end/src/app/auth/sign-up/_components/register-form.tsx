@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type RegisterResponse = {
   draftId?: number;
@@ -14,24 +14,15 @@ type RegisterResponse = {
 
 export function RegisterForm({
   onRequestSignIn,
-  initialBatchYear,
-  lockBatchYear = false,
   registrationEndpoint = "/api/auth/register",
 }: {
   onRequestSignIn?: () => void;
-  initialBatchYear?: number;
-  lockBatchYear?: boolean;
   registrationEndpoint?: string;
 } = {}) {
   const router = useRouter();
-  const [batchYears, setBatchYears] = useState<number[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    studentId: "",
-    yearGraduated: initialBatchYear ? String(initialBatchYear) : "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -40,22 +31,6 @@ export function RegisterForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    fetch("/api/auth/register-options")
-      .then((response) => response.json().catch(() => ({})))
-      .then((body: { batchYears?: number[] }) => {
-        const years = body.batchYears ?? [];
-        setBatchYears(
-          initialBatchYear && !years.includes(initialBatchYear)
-            ? [initialBatchYear, ...years]
-            : years,
-        );
-      })
-      .catch(() => {
-        setBatchYears(initialBatchYear ? [initialBatchYear] : []);
-      });
-  }, [initialBatchYear]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -67,10 +42,7 @@ export function RegisterForm({
       const response = await fetch(registrationEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          yearGraduated: form.yearGraduated ? Number(form.yearGraduated) : null,
-        }),
+        body: JSON.stringify(form),
       });
       const body = (await response.json().catch(() => ({}))) as RegisterResponse;
 
@@ -94,7 +66,7 @@ export function RegisterForm({
   };
 
   const updateField = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const { name, value, type } = event.target;
 
@@ -109,67 +81,43 @@ export function RegisterForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-7">
-      <section className="space-y-4">
-        <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-blue-dark">
-          Personal details
-        </h2>
+      {/* Google Sign-Up */}
+      <a
+        href="/api/auth/google/start"
+        className="flex h-12 w-full items-center justify-center gap-3 rounded-md border border-stroke bg-gray-1 text-sm font-bold text-dark transition hover:border-blue-dark hover:bg-white dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:hover:border-blue dark:hover:bg-dark"
+      >
+        <svg className="size-5" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+            fill="#4285F4"
+          />
+          <path
+            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            fill="#34A853"
+          />
+          <path
+            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+            fill="#FBBC05"
+          />
+          <path
+            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+            fill="#EA4335"
+          />
+        </svg>
+        Sign up with Google
+      </a>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FieldCard
-            label="First name"
-            name="firstName"
-            value={form.firstName}
-            onChange={updateField}
-            error={fieldErrors.firstName}
-            placeholder="Enter your first name"
-            autoComplete="given-name"
-          />
-          <FieldCard
-            label="Last name"
-            name="lastName"
-            value={form.lastName}
-            onChange={updateField}
-            error={fieldErrors.lastName}
-            placeholder="Enter your last name"
-            autoComplete="family-name"
-          />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FieldCard
-            label="School ID"
-            name="studentId"
-            value={form.studentId}
-            onChange={updateField}
-            placeholder="e.g. 202200123"
-            error={fieldErrors.studentId}
-          />
-          <SelectCard
-            label="Batch year"
-            name="yearGraduated"
-            value={form.yearGraduated}
-            onChange={updateField}
-            error={fieldErrors.yearGraduated}
-            disabled={lockBatchYear && Boolean(initialBatchYear)}
-            hint={
-              lockBatchYear && initialBatchYear
-                ? "This batch year is fixed by the QR code you scanned."
-                : undefined
-            }
-          >
-            <option value="">Select open batch</option>
-            {batchYears.map((year) => (
-              <option key={year} value={year}>
-                Batch {year}
-              </option>
-            ))}
-          </SelectCard>
-        </div>
-      </section>
+      <div className="flex items-center gap-3.5">
+        <span className="block h-px flex-1 bg-stroke dark:bg-dark-3" />
+        <span className="text-xs font-bold uppercase tracking-widest text-dark-5">
+          or register with email
+        </span>
+        <span className="block h-px flex-1 bg-stroke dark:bg-dark-3" />
+      </div>
 
       <section className="space-y-4">
         <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-blue-dark">
-          Account access
+          Account details
         </h2>
 
         <FieldCard
@@ -193,6 +141,7 @@ export function RegisterForm({
             error={fieldErrors.password}
             placeholder="Create your password"
             autoComplete="new-password"
+            hint="At least 8 characters with uppercase, lowercase, number, and symbol."
             endAdornment={
               <button
                 type="button"
@@ -248,6 +197,14 @@ export function RegisterForm({
             )}
           </div>
         </div>
+      </div>
+
+      <div className="rounded-md border border-blue/10 bg-blue/[0.04] px-4 py-3">
+        <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
+          <strong className="text-blue-dark dark:text-blue">After registering,</strong>{" "}
+          you&apos;ll verify your email and then link your account to your student
+          record using your Student ID.
+        </p>
       </div>
 
       {error && (
@@ -330,71 +287,6 @@ function FieldCard({
           className="w-full bg-transparent text-sm font-medium text-dark outline-none placeholder:text-dark-6 dark:text-white"
         />
         {endAdornment ? <div className="shrink-0">{endAdornment}</div> : null}
-      </div>
-      {hint && !error && (
-        <span className="mt-2 block text-xs font-medium leading-5 text-dark-5 dark:text-dark-6">
-          {hint}
-        </span>
-      )}
-      {error && (
-        <span className="mt-2 block text-sm font-medium text-red">{error}</span>
-      )}
-    </label>
-  );
-}
-
-function SelectCard({
-  label,
-  name,
-  value,
-  onChange,
-  error,
-  hint,
-  disabled = false,
-  children,
-}: {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
-  error?: string;
-  hint?: string;
-  disabled?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2.5 block text-sm font-semibold text-dark dark:text-white">
-        {label}
-      </span>
-      <div
-        className={cn(
-          "relative flex h-12 items-center rounded-md border bg-gray-1 px-4 transition focus-within:border-blue-dark focus-within:bg-white focus-within:ring-4 focus-within:ring-blue/10 dark:bg-dark-2 dark:focus-within:bg-dark",
-          error
-            ? "border-red/40"
-            : "border-stroke dark:border-dark-3",
-        )}
-      >
-        <select
-          name={name}
-          value={value}
-          onChange={onChange}
-          disabled={disabled}
-          className="w-full appearance-none bg-transparent pr-8 text-sm font-medium text-dark outline-none disabled:cursor-not-allowed dark:text-white"
-        >
-          {children}
-        </select>
-        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-dark-5 dark:text-dark-6">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path
-              d="M4 6L8 10L12 6"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
       </div>
       {hint && !error && (
         <span className="mt-2 block text-xs font-medium leading-5 text-dark-5 dark:text-dark-6">

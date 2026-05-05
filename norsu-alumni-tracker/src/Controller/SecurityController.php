@@ -14,25 +14,21 @@ class SecurityController extends AbstractController
     public function login(Request $request, AuthenticationUtils $authenticationUtils): Response
     {
         $switchAccount = $request->query->getBoolean('switch_account');
-        $targetPath = trim((string) $request->query->get('_target_path', ''));
 
         // If already logged in, redirect to dashboard
         if ($this->getUser() && !$switchAccount) {
             return $this->redirectToRoute('app_home');
         }
 
-        // get the login error if there is one
-        $error = $authenticationUtils->getLastAuthenticationError();
-        // last username entered by the user
-        $lastUsername = $authenticationUtils->getLastUsername();
+        // For API/JSON requests, return a JSON response
+        if ($request->getPreferredFormat() === 'json' || str_contains((string) $request->headers->get('Accept', ''), 'application/json')) {
+            return $this->json([
+                'message' => 'Authentication required.',
+            ], 401);
+        }
 
-        return $this->render('security/login.html.twig', [
-            'last_username' => $lastUsername,
-            'error' => $error,
-            'switch_account' => $switchAccount,
-            'target_path' => $targetPath,
-            'landing_mode' => 'guest',
-        ]);
+        // For browser requests, redirect to the landing page (which has the login modal)
+        return $this->redirect('http://localhost:3000/');
     }
 
     #[Route(path: '/logout', name: 'app_logout')]

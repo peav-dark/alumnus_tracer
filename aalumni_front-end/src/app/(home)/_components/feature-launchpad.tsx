@@ -72,17 +72,6 @@ export async function FeatureLaunchpad() {
             </span>
           </Link>
         ))}
-        <Link
-          href="/qr-registration"
-          className="rounded-[10px] border border-stroke p-4 transition-colors hover:border-primary hover:bg-primary/[0.03] dark:border-dark-3 dark:hover:border-primary"
-        >
-          <span className="font-semibold text-dark dark:text-white">
-            QR Registration
-          </span>
-          <span className="mt-1 block text-sm font-medium text-dark-5 dark:text-dark-6">
-            Batch QR onboarding workflow
-          </span>
-        </Link>
       </div>
     </section>
   );

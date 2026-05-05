@@ -208,7 +208,7 @@ class SurveyInvitationApiController extends AbstractController
 
         if ($markOpened && $invitation->getOpenedAt() === null) {
             $invitation->setOpenedAt(new \DateTimeImmutable());
-            if (in_array($invitation->getStatus(), [SurveyInvitation::STATUS_QUEUED, SurveyInvitation::STATUS_SENT], true)) {
+            if (in_array($invitation->getStatus(), [SurveyInvitation::STATUS_QUEUED, SurveyInvitation::STATUS_ASSIGNED, SurveyInvitation::STATUS_SENT], true)) {
                 $invitation->setStatus(SurveyInvitation::STATUS_OPENED);
             }
             $entityManager->persist($invitation);
@@ -273,6 +273,7 @@ class SurveyInvitationApiController extends AbstractController
             ],
         ];
     }
+
 
     private function currentUser(): User
     {

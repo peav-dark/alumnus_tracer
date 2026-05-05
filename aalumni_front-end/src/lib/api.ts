@@ -379,6 +379,52 @@ export type AcademicResponse = {
   departments: Department[];
 };
 
+export type StudentRecord = {
+  id: number;
+  studentId: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  fullName: string;
+  college: string | null;
+  department: string | null;
+  batchYear: number | null;
+  claimed: boolean;
+  claimedBy: {
+    id: number;
+    fullName: string;
+    email: string;
+  } | null;
+  claimedAt: string | null;
+  importedAt: string | null;
+  importBatchLabel: string | null;
+};
+
+export type StudentRecordStatsResponse = {
+  total: number;
+  unclaimed: number;
+  claimed: number;
+};
+
+export type StudentRecordsResponse = {
+  items: StudentRecord[];
+  meta: {
+    limit: number;
+    offset: number;
+    total: number;
+    totalUnclaimed: number;
+    totalClaimed: number;
+  };
+};
+
+export type StudentRecordImportResponse = {
+  message: string;
+  imported: number;
+  updated: number;
+  skipped: number;
+  errors: string[];
+};
+
 export type QrRegistrationBatch = {
   id: number;
   batchYear: number;
@@ -415,6 +461,7 @@ export type SurveyQuestion = {
   options: Array<string | Record<string, unknown>> | null;
   sortOrder: number;
   isActive: boolean;
+  isRequired: boolean;
 };
 
 export type SurveyQuestionsResponse = {
@@ -443,6 +490,7 @@ export type SurveyCampaign = {
   invitations: {
     total: number;
     queued: number;
+    assigned: number;
     sent: number;
     opened: number;
     completed: number;
@@ -501,6 +549,8 @@ export type GtsResponseListItem = {
   } | null;
   sourceLabel: string;
   targetBatchYear: number | null;
+  college: string | null;
+  course: string | null;
   invitation: {
     id: number;
     status: string;
@@ -607,9 +657,19 @@ export const getPublicJob = cache((id: number) =>
   publicApiFetchOrNull<{ item: JobPosting }>(`/api/public/jobs/${id}`),
 );
 
-export const getAdminAcademic = cache(() =>
-  apiFetchOrNull<AcademicResponse>("/api/admin/academic"),
-);
+export function getAdminAcademic() {
+  return apiFetchOrNull<AcademicResponse>("/api/admin/academic");
+}
+
+export async function getAdminStudentRecords(limit = 50) {
+  try {
+    return await apiFetch<StudentRecordsResponse>(
+      `/api/admin/student-records?limit=${limit}`,
+    );
+  } catch {
+    return null;
+  }
+}
 
 export const getAdminQrRegistration = cache(() =>
   apiFetchOrNull<QrRegistrationResponse>("/api/admin/qr-registration"),
@@ -634,6 +694,13 @@ export const getAdminGtsResponses = cache((query = "") =>
     `/api/admin/gts/responses${query ? `?${query}` : ""}`,
   ),
 );
+
+export const getAdminGtsResponseFilters = cache(() =>
+  apiFetchOrNull<{ colleges: string[]; courses: string[] }>(
+    "/api/admin/gts/responses/filters",
+  ),
+);
+
 
 export const getAdminGtsResponse = cache((id: number) =>
   apiFetchOrNull<GtsResponseResponse>(`/api/admin/gts/responses/${id}`),

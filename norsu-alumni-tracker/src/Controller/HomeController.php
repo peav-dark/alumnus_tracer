@@ -470,6 +470,7 @@ final class HomeController extends AbstractController
         $invitationStatus = $this->resolveTracerInvitationStatus($currentInvitation, $latestSurvey);
         $invitationStatusLabel = match ($invitationStatus) {
             SurveyInvitation::STATUS_QUEUED => 'Queued',
+            SurveyInvitation::STATUS_ASSIGNED => 'Assigned',
             SurveyInvitation::STATUS_SENT => 'Sent',
             SurveyInvitation::STATUS_OPENED => 'Opened',
             SurveyInvitation::STATUS_COMPLETED => 'Completed',
@@ -522,6 +523,7 @@ final class HomeController extends AbstractController
 
         $statusSummary = match ($invitationStatus) {
             SurveyInvitation::STATUS_QUEUED => 'Your tracer invitation is queued under ' . $campaignName . '.',
+            SurveyInvitation::STATUS_ASSIGNED => 'Your tracer invitation is available in the dashboard under ' . $campaignName . '.',
             SurveyInvitation::STATUS_SENT => 'Your tracer invitation was sent under ' . $campaignName . ' and is waiting to be opened.',
             SurveyInvitation::STATUS_OPENED => 'You already opened ' . $campaignName . '; the response window is currently active.',
             SurveyInvitation::STATUS_COMPLETED => 'You completed ' . $campaignName . ' and the response remains on file.',
@@ -535,6 +537,7 @@ final class HomeController extends AbstractController
         [$entryUrl, $entryLabel] = match (true) {
             $currentInvitation instanceof SurveyInvitation && in_array($invitationStatus, [
                 SurveyInvitation::STATUS_QUEUED,
+                SurveyInvitation::STATUS_ASSIGNED,
                 SurveyInvitation::STATUS_SENT,
                 SurveyInvitation::STATUS_OPENED,
             ], true) => [

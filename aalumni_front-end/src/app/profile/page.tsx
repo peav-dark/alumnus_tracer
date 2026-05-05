@@ -3,6 +3,7 @@
 import { CameraIcon } from "@/app/profile/_components/icons";
 import { PublicAuthModal, type PublicAuthView } from "@/components/alumni-system/public-auth-modal";
 import { PublicHeader } from "@/components/alumni-system/public-header";
+import { StudentLinkModal } from "@/components/alumni-system/student-link-modal";
 import {
   accountToPublicUser,
   isAlumniAccount,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/public-auth";
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 type AccountSettingsResponse = {
   item?: AccountSettings;
@@ -49,6 +51,24 @@ export default function ProfilePage() {
   const [message, setMessage] = useState("");
   const [authOpen, setAuthOpen] = useState(false);
   const [authView, setAuthView] = useState<PublicAuthView>("sign-in");
+  const [showStudentLink, setShowStudentLink] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Check if redirected from Google with needsStudentLink
+  // This param is only set by the backend for alumni users
+  useEffect(() => {
+    if (searchParams.get("needsStudentLink") === "1") {
+      setShowStudentLink(true);
+    }
+  }, [searchParams]);
+
+  // Also check from account settings (alumni only)
+  useEffect(() => {
+    if (account && isAlumniAccount(account) && (account as Record<string, unknown>).needsStudentLink === true) {
+      setShowStudentLink(true);
+    }
+  }, [account]);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -58,7 +78,7 @@ export default function ProfilePage() {
     }
 
     void loadAccount(user);
-  }, [isLoggedIn, user?.email]);
+  }, [isLoggedIn, user?.email]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!selectedPhoto) {
@@ -233,6 +253,17 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen bg-white text-dark dark:bg-[#020d1a]">
       <PublicHeader active="home" accent="blue" />
+
+      {/* Student Link Modal — shown after Google registration */}
+      {showStudentLink && (
+        <StudentLinkModal
+          onLinked={() => {
+            setShowStudentLink(false);
+            // Reload the page to refresh account data
+            window.location.href = "/profile";
+          }}
+        />
+      )}
 
       <section className="bg-[linear-gradient(135deg,#0F3D91_0%,#1C3FB7_42%,#5475E5_100%)] px-5 pb-16 pt-32 text-white sm:px-8 lg:px-10">
         <div className="mx-auto max-w-3xl text-center">

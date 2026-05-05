@@ -9,6 +9,7 @@ use App\Repository\UserRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use App\Service\SurveyInvitationAssignmentService;
 
 class AlumniRegistrationService
 {
@@ -17,6 +18,7 @@ class AlumniRegistrationService
         private UserRepository $userRepository,
         private AlumniRepository $alumniRepository,
         private UserPasswordHasherInterface $userPasswordHasher,
+        private SurveyInvitationAssignmentService $invitationAssignmentService,
     ) {
     }
 
@@ -104,6 +106,10 @@ class AlumniRegistrationService
             throw new RegistrationValidationException([
                 'form' => 'This registration could not be completed because the email or student ID is already in use.',
             ]);
+        }
+
+        if ($accountStatus === 'active') {
+            $this->invitationAssignmentService->assignForUser($user);
         }
 
         return $user;

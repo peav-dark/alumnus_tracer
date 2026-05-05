@@ -10,6 +10,7 @@ use App\Repository\DepartmentRepository;
 use App\Repository\QrRegistrationBatchRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Service\SurveyInvitationAssignmentService;
 
 class GoogleOnboardingService
 {
@@ -19,6 +20,7 @@ class GoogleOnboardingService
         private AlumniRepository $alumniRepository,
         private DepartmentRepository $departmentRepository,
         private QrRegistrationBatchRepository $batchRepository,
+        private SurveyInvitationAssignmentService $invitationAssignmentService,
     ) {
     }
 
@@ -28,19 +30,36 @@ class GoogleOnboardingService
             return false;
         }
 
-        if ($user->isRequiresOnboarding()) {
-            return true;
-        }
-
         if (trim((string) $user->getGoogleSubject()) === '') {
             return false;
         }
 
-        return $user->getProfileCompletedAt() === null
-            || trim((string) $user->getSchoolId()) === ''
-            || trim((string) $user->getFirstName()) === ''
-            || trim((string) $user->getLastName()) === ''
-            || $user->getAlumni() === null;
+        $alumni = $user->getAlumni();
+        $schoolId = trim((string) $user->getSchoolId());
+        $firstName = trim((string) $user->getFirstName());
+        $lastName = trim((string) $user->getLastName());
+
+        if ($alumni instanceof Alumni) {
+            if ($schoolId === '') {
+                $schoolId = trim((string) $alumni->getStudentNumber());
+            }
+
+            if ($firstName === '') {
+                $firstName = trim((string) $alumni->getFirstName());
+            }
+
+            if ($lastName === '') {
+                $lastName = trim((string) $alumni->getLastName());
+            }
+        }
+
+        $needsData = $schoolId === '' || $firstName === '' || $lastName === '' || $alumni === null;
+
+        if ($user->isRequiresOnboarding()) {
+            return $needsData;
+        }
+
+        return $needsData;
     }
 
     public function hasAlumniMatchForOnboarding(User $user): bool
@@ -315,6 +334,8 @@ class GoogleOnboardingService
         $this->entityManager->persist($user);
         $this->entityManager->persist($alumni);
         $this->entityManager->flush();
+
+        $this->invitationAssignmentService->assignForUser($user);
 
         return $user;
     }

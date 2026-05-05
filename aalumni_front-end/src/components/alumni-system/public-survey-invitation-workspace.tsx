@@ -4,13 +4,20 @@ import { clearStoredAuthState, usePublicAuthState } from "@/lib/public-auth";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { PublicAuthModal, type PublicAuthView } from "./public-auth-modal";
+import {
+  PhAddressPicker,
+  EMPTY_PH_ADDRESS,
+  formatPhAddress,
+  type PhAddressValue,
+} from "@/components/forms/ph-address-picker";
 
 type SurveyQuestion = {
   key: string;
   section: string;
   questionText: string;
-  inputType: "text" | "textarea" | "radio" | "checkbox" | "select" | "date" | "repeater";
+  inputType: "text" | "textarea" | "radio" | "checkbox" | "select" | "date" | "repeater" | "location";
   options?: Array<string | RepeaterColumn> | null;
+  isRequired?: boolean;
 };
 
 type RepeaterColumn = {
@@ -53,10 +60,12 @@ export function PublicSurveyInvitationWorkspace({ token }: { token: string }) {
   const [authView, setAuthView] = useState<PublicAuthView>("sign-in");
   const [invitation, setInvitation] = useState<SurveyInvitation | null>(null);
   const [answers, setAnswers] = useState<Answers>({});
+  const [missingRequiredKeys, setMissingRequiredKeys] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
 
   useEffect(() => {
     if (isLoading) {
@@ -93,6 +102,8 @@ export function PublicSurveyInvitationWorkspace({ token }: { token: string }) {
       }
 
       setInvitation(body.item);
+      setMissingRequiredKeys([]);
+      setCurrentSectionIndex(0);
     } catch {
       setMessage("Unable to reach the survey invitation endpoint.");
     } finally {
@@ -103,6 +114,27 @@ export function PublicSurveyInvitationWorkspace({ token }: { token: string }) {
   async function submitSurvey(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const totalSections = invitation?.questionSections.length ?? 0;
+    if (invitation && totalSections > 0 && currentSectionIndex < totalSections - 1) {
+      if (currentSection && sectionHasMissingRequired(currentSection, answers)) {
+        setMissingRequiredKeys(
+          getMissingRequiredQuestionKeys([currentSection], answers),
+        );
+        setMessage("Please answer all required questions before continuing.");
+        return;
+      }
+
+      setMissingRequiredKeys([]);
+      setCurrentSectionIndex((index) => Math.min(index + 1, totalSections - 1));
+      return;
+    }
+
+    if (invitation && hasMissingRequiredAnswers(invitation.questionSections, answers)) {
+      setMissingRequiredKeys(getMissingRequiredQuestionKeys(invitation.questionSections, answers));
+      setMessage("Please answer all required questions before submitting.");
+      return;
+    }
+
     if (!hasAnyAnswer(answers)) {
       setMessage("Please answer at least one question before submitting.");
       return;
@@ -110,6 +142,7 @@ export function PublicSurveyInvitationWorkspace({ token }: { token: string }) {
 
     setSubmitting(true);
     setMessage("");
+    setMissingRequiredKeys([]);
 
     try {
       const response = await fetch(`/api/account/survey/invitations/${encodeURIComponent(token)}`, {
@@ -183,6 +216,23 @@ export function PublicSurveyInvitationWorkspace({ token }: { token: string }) {
     () => invitation?.questionSections.reduce((sum, section) => sum + section.items.length, 0) ?? 0,
     [invitation],
   );
+  const totalSections = invitation?.questionSections.length ?? 0;
+  const sectionIndex = totalSections === 0
+    ? 0
+    : Math.min(currentSectionIndex, totalSections - 1);
+  const currentSection = totalSections === 0
+    ? null
+    : invitation?.questionSections[sectionIndex] ?? null;
+  const isFirstSection = sectionIndex === 0;
+  const isLastSection = totalSections === 0 || sectionIndex === totalSections - 1;
+  const hasMissingRequiredInSection = currentSection
+    ? sectionHasMissingRequired(currentSection, answers)
+    : false;
+  const hasRequiredQuestions = useMemo(
+    () => invitation?.questionSections.some((section) =>
+      section.items.some((question) => question.isRequired)) ?? false,
+    [invitation],
+  );
 
   return (
     <section className="px-5 py-12 sm:px-8 lg:px-10">
@@ -225,6 +275,11 @@ export function PublicSurveyInvitationWorkspace({ token }: { token: string }) {
                     {invitation.surveyTemplate.description}
                   </p>
                 )}
+                {hasRequiredQuestions && (
+                  <p className="mt-2 text-xs font-semibold text-red">
+                    Fields marked with * are required.
+                  </p>
+                )}
               </div>
               <div className="rounded-md bg-gray-1 px-4 py-3 text-sm font-semibold text-dark-5 dark:bg-dark-2 dark:text-dark-6">
                 {questionCount} questions
@@ -241,17 +296,25 @@ export function PublicSurveyInvitationWorkspace({ token }: { token: string }) {
             )}
 
             <div className="mt-8 space-y-8">
-              {invitation.questionSections.map((section) => (
-                <section key={section.title} className="space-y-4">
-                  <h3 className="text-xl font-black text-dark dark:text-white">
-                    {section.title}
-                  </h3>
+              {currentSection ? (
+                <section key={currentSection.title} className="space-y-4">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                    <h3 className="text-xl font-black text-dark dark:text-white">
+                      {currentSection.title}
+                    </h3>
+                    {totalSections > 1 && (
+                      <span className="text-xs font-semibold text-dark-5 dark:text-dark-6">
+                        Section {sectionIndex + 1} of {totalSections}
+                      </span>
+                    )}
+                  </div>
                   <div className="grid gap-4">
-                    {section.items.map((question) => (
+                    {currentSection.items.map((question) => (
                       <QuestionField
                         key={question.key}
                         question={question}
                         value={answers[question.key]}
+                        isInvalid={missingRequiredKeys.includes(question.key)}
                         onChange={(value) =>
                           setAnswers((current) => ({ ...current, [question.key]: value }))
                         }
@@ -259,25 +322,67 @@ export function PublicSurveyInvitationWorkspace({ token }: { token: string }) {
                     ))}
                   </div>
                 </section>
-              ))}
+              ) : null}
             </div>
 
-            <div className="mt-8 flex justify-end">
-              <div className="w-full sm:w-auto">
-                {message && (
-                  <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-                    {message}
-                  </p>
-                )}
+            {totalSections > 1 && (
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
-                  type="submit"
-                  disabled={submitting}
-                  className="inline-flex h-12 w-full items-center justify-center rounded-md bg-blue-dark px-6 text-sm font-bold text-white transition hover:bg-blue disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+                  type="button"
+                  disabled={isFirstSection}
+                  onClick={() => setCurrentSectionIndex((index) => Math.max(index - 1, 0))}
+                  className="inline-flex h-11 items-center justify-center rounded-md border border-stroke px-5 text-sm font-semibold text-dark transition hover:bg-gray-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
                 >
-                  {submitting ? "Submitting..." : "Submit Survey"}
+                  Previous
                 </button>
+                <div className="flex flex-col items-end gap-1">
+                  <button
+                    type="button"
+                    disabled={isLastSection}
+                    onClick={() => {
+                      if (hasMissingRequiredInSection && currentSection) {
+                        setMissingRequiredKeys(
+                          getMissingRequiredQuestionKeys([currentSection], answers),
+                        );
+                        setMessage("Please answer all required questions before continuing.");
+                        return;
+                      }
+
+                      setMissingRequiredKeys([]);
+                      setMessage("");
+                      setCurrentSectionIndex((index) => Math.min(index + 1, totalSections - 1));
+                    }}
+                    className="inline-flex h-11 items-center justify-center rounded-md bg-blue-dark px-5 text-sm font-semibold text-white transition hover:bg-blue disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next Section
+                  </button>
+                  {hasMissingRequiredInSection && !isLastSection ? (
+                    <span className="text-xs font-semibold text-red">
+                      Complete required fields to continue.
+                    </span>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            )}
+
+            {isLastSection && (
+              <div className="mt-8 flex justify-end">
+                <div className="w-full sm:w-auto">
+                  {message && (
+                    <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                      {message}
+                    </p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex h-12 w-full items-center justify-center rounded-md bg-blue-dark px-6 text-sm font-bold text-white transition hover:bg-blue disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+                  >
+                    {submitting ? "Submitting..." : "Submit Survey"}
+                  </button>
+                </div>
+              </div>
+            )}
           </form>
         ) : (
           <StatusCard title="Survey unavailable" message={message || "Unable to load this survey invitation."} />
@@ -330,10 +435,12 @@ function StatusCard({ title, message }: { title: string; message: string }) {
 function QuestionField({
   question,
   value,
+  isInvalid,
   onChange,
 }: {
   question: SurveyQuestion;
   value: Answers[string] | undefined;
+  isInvalid: boolean;
   onChange: (value: Answers[string]) => void;
 }) {
   const options = Array.isArray(question.options)
@@ -341,9 +448,18 @@ function QuestionField({
     : [];
 
   return (
-    <div className="rounded-md border border-stroke bg-gray-1 p-4 dark:border-dark-3 dark:bg-dark-2">
+    <div
+      className={`rounded-md border p-4 dark:bg-dark-2 ${isInvalid
+        ? "border-red bg-red/[0.06] dark:border-red/40"
+        : "border-stroke bg-gray-1 dark:border-dark-3"
+      }`}
+    >
       <label className="block text-sm font-bold text-dark dark:text-white">
         {question.questionText}
+        {question.isRequired ? (
+          <span className="ml-1 text-red" aria-hidden="true">*</span>
+        ) : null}
+        {question.isRequired ? <span className="sr-only">Required</span> : null}
       </label>
       <div className="mt-3">
         {question.inputType === "textarea" ? (
@@ -390,6 +506,11 @@ function QuestionField({
             value={Array.isArray(value) ? value.filter((item): item is Record<string, string> => typeof item === "object" && item !== null && !Array.isArray(item)) : []}
             onChange={onChange}
           />
+        ) : question.inputType === "location" ? (
+          <LocationField
+            value={typeof value === "string" ? value : ""}
+            onChange={(formatted) => onChange(formatted)}
+          />
         ) : (
           <input
             type={question.inputType === "date" ? "date" : "text"}
@@ -399,6 +520,11 @@ function QuestionField({
           />
         )}
       </div>
+      {isInvalid ? (
+        <p className="mt-2 text-xs font-semibold text-red">
+          This required question needs to be filled up.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -487,6 +613,40 @@ function RepeaterField({
   );
 }
 
+function LocationField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (formatted: string) => void;
+}) {
+  const [address, setAddress] = useState<PhAddressValue>(() => {
+    if (!value) return EMPTY_PH_ADDRESS;
+
+    // Parse "Barangay, City, Province, Region" back into parts
+    const parts = value.split(", ").map((s) => s.trim());
+
+    return {
+      barangay: parts[0] ?? "",
+      barangayCode: "",
+      cityMun: parts[1] ?? "",
+      cityMunCode: "",
+      province: parts[2] ?? "",
+      provinceCode: "",
+      region: parts[3] ?? "",
+      regionCode: "",
+    };
+  });
+
+  const handleChange = (next: PhAddressValue) => {
+    setAddress(next);
+    const formatted = formatPhAddress(next);
+    onChange(formatted);
+  };
+
+  return <PhAddressPicker value={address} onChange={handleChange} />;
+}
+
 const inputClassName =
   "min-h-11 w-full rounded-md border border-stroke bg-white px-3 py-2 text-sm font-medium text-dark outline-none transition focus:border-blue-dark dark:border-dark-3 dark:bg-gray-dark dark:text-white";
 
@@ -521,5 +681,53 @@ function hasAnyAnswer(answers: Answers) {
 
       return Object.values(item).some((value) => value.trim() !== "");
     });
+  });
+}
+
+function hasMissingRequiredAnswers(sections: SurveyInvitation["questionSections"], answers: Answers) {
+  return sections.some((section) =>
+    section.items.some((question) =>
+      question.isRequired && isEmptyAnswer(answers[question.key])),
+  );
+}
+
+function getMissingRequiredQuestionKeys(
+  sections: SurveyInvitation["questionSections"],
+  answers: Answers,
+) {
+  return sections.flatMap((section) =>
+    section.items
+      .filter((question) => question.isRequired && isEmptyAnswer(answers[question.key]))
+      .map((question) => question.key),
+  );
+}
+
+function sectionHasMissingRequired(
+  section: SurveyInvitation["questionSections"][number],
+  answers: Answers,
+) {
+  return section.items.some((question) =>
+    question.isRequired && isEmptyAnswer(answers[question.key]));
+}
+
+function isEmptyAnswer(answer: Answers[string] | undefined) {
+  if (answer === undefined || answer === null) {
+    return true;
+  }
+
+  if (typeof answer === "string") {
+    return answer.trim() === "";
+  }
+
+  if (!Array.isArray(answer) || answer.length === 0) {
+    return true;
+  }
+
+  return answer.every((item) => {
+    if (typeof item === "string") {
+      return item.trim() === "";
+    }
+
+    return Object.values(item).every((value) => value.trim() === "");
   });
 }
