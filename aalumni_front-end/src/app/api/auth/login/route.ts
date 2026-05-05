@@ -117,7 +117,7 @@ function readJwtRoles(token: string) {
     : [];
 }
 
-function safeParseJwtPayload(token: string): { roles?: unknown } | null {
+function safeParseJwtPayload(token: string): { roles?: unknown; exp?: unknown } | null {
   const payloadSegment = token.split(".")[1];
 
   if (!payloadSegment) {

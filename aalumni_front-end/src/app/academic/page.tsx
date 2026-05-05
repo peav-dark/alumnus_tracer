@@ -7,6 +7,12 @@ import {
 } from "@/components/alumni-system/ui";
 import { JQueryDataTable } from "@/components/alumni-system/jquery-data-table";
 import {
+  CreateCollegeAction,
+  CreateDepartmentAction,
+  CollegeRowActions,
+  DepartmentRowActions,
+} from "@/components/alumni-system/academic-actions";
+import {
   Table,
   TableBody,
   TableCell,
@@ -47,7 +53,11 @@ export default async function AcademicPage() {
 
       {academic ? (
         <div className="grid gap-6 xl:grid-cols-2">
-          <Panel title="Colleges">
+          {/* ── COLLEGES ── */}
+          <Panel
+            title="Colleges"
+            action={<CreateCollegeAction />}
+          >
             <JQueryDataTable
               pageLength={10}
               compactFilters
@@ -72,7 +82,8 @@ export default async function AcademicPage() {
                     <TableHead className="pl-5 sm:pl-7.5">College</TableHead>
                     <TableHead>Code</TableHead>
                     <TableHead>Departments</TableHead>
-                    <TableHead className="pr-5 sm:pr-7.5">Status</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="pr-5 sm:pr-7.5">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -88,8 +99,11 @@ export default async function AcademicPage() {
                       </TableCell>
                       <TableCell>{college.code || "N/A"}</TableCell>
                       <TableCell>{college.departmentCount}</TableCell>
-                      <TableCell className="pr-5 sm:pr-7.5">
+                      <TableCell>
                         <StatusPill status={college.isActive ? "Active" : "Inactive"} />
+                      </TableCell>
+                      <TableCell className="pr-5 sm:pr-7.5">
+                        <CollegeRowActions college={college} />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -98,7 +112,11 @@ export default async function AcademicPage() {
             </JQueryDataTable>
           </Panel>
 
-          <Panel title="Departments">
+          {/* ── DEPARTMENTS ── */}
+          <Panel
+            title="Departments"
+            action={<CreateDepartmentAction colleges={colleges} />}
+          >
             <JQueryDataTable
               pageLength={10}
               filters={[
@@ -128,7 +146,8 @@ export default async function AcademicPage() {
                     <TableHead className="pl-5 sm:pl-7.5">Department</TableHead>
                     <TableHead>College</TableHead>
                     <TableHead>Code</TableHead>
-                    <TableHead className="pr-5 sm:pr-7.5">Status</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="pr-5 sm:pr-7.5">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -144,9 +163,15 @@ export default async function AcademicPage() {
                       </TableCell>
                       <TableCell>{department.college?.code || "Unassigned"}</TableCell>
                       <TableCell>{department.code || "N/A"}</TableCell>
-                      <TableCell className="pr-5 sm:pr-7.5">
+                      <TableCell>
                         <StatusPill
                           status={department.isActive ? "Active" : "Inactive"}
+                        />
+                      </TableCell>
+                      <TableCell className="pr-5 sm:pr-7.5">
+                        <DepartmentRowActions
+                          department={department}
+                          colleges={colleges}
                         />
                       </TableCell>
                     </TableRow>

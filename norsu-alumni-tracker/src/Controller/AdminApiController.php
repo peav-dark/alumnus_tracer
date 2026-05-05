@@ -857,6 +857,165 @@ final class AdminApiController extends AbstractController
         ]);
     }
 
+    #[Route('/academic/colleges', name: 'api_admin_college_create', methods: ['POST'])]
+    public function createCollege(Request $request, EntityManagerInterface $em, CollegeRepository $collegeRepo, AuditLogger $audit, NotificationService $notifications): JsonResponse
+    {
+        $payload = $this->jsonPayload($request);
+        $name = trim((string) ($payload['name'] ?? ''));
+        $code = strtoupper(trim((string) ($payload['code'] ?? '')));
+        $description = trim((string) ($payload['description'] ?? '')) ?: null;
+        $isActive = (bool) ($payload['isActive'] ?? true);
+        $errors = [];
+
+        if ($name === '') { $errors['name'] = 'College name is required.'; }
+        if ($code === '') { $errors['code'] = 'College code is required.'; }
+        elseif ($collegeRepo->findOneBy(['code' => $code]) !== null) { $errors['code'] = 'This code is already in use.'; }
+        if ($name !== '' && $collegeRepo->findOneBy(['name' => $name]) !== null) { $errors['name'] = 'A college with this name already exists.'; }
+
+        if ($errors !== []) {
+            return $this->json(['message' => 'College data is invalid.', 'errors' => $errors], 422);
+        }
+
+        $college = (new College())->setName($name)->setCode($code)->setDescription($description)->setIsActive($isActive);
+        $em->persist($college);
+        $em->flush();
+
+        $audit->log('create_college', 'College', $college->getId(), 'Created college: ' . $college->getName());
+        $notifications->createAdminNotification('academic.college_created', 'College created', 'Created college: ' . $college->getName(), AdminNotification::SEVERITY_INFO, '/academic', 'College', $college->getId());
+
+        return $this->json(['item' => $this->serializeCollege($college), 'message' => 'College created.'], 201);
+    }
+
+    #[Route('/academic/colleges/{id}', name: 'api_admin_college_update', methods: ['PATCH'], requirements: ['id' => '\d+'])]
+    public function updateCollege(College $college, Request $request, EntityManagerInterface $em, CollegeRepository $collegeRepo, AuditLogger $audit): JsonResponse
+    {
+        $payload = $this->jsonPayload($request);
+        $name = trim((string) ($payload['name'] ?? ''));
+        $code = strtoupper(trim((string) ($payload['code'] ?? '')));
+        $description = trim((string) ($payload['description'] ?? '')) ?: null;
+        $isActive = (bool) ($payload['isActive'] ?? true);
+        $errors = [];
+
+        if ($name === '') { $errors['name'] = 'College name is required.'; }
+        if ($code === '') { $errors['code'] = 'College code is required.'; }
+        else {
+            $existing = $collegeRepo->findOneBy(['code' => $code]);
+            if ($existing !== null && $existing->getId() !== $college->getId()) { $errors['code'] = 'This code is already in use.'; }
+        }
+        if ($name !== '') {
+            $existing = $collegeRepo->findOneBy(['name' => $name]);
+            if ($existing !== null && $existing->getId() !== $college->getId()) { $errors['name'] = 'A college with this name already exists.'; }
+        }
+
+        if ($errors !== []) {
+            return $this->json(['message' => 'College data is invalid.', 'errors' => $errors], 422);
+        }
+
+        $college->setName($name)->setCode($code)->setDescription($description)->setIsActive($isActive);
+        $em->flush();
+        $audit->log('update_college', 'College', $college->getId(), 'Updated college: ' . $college->getName());
+
+        return $this->json(['item' => $this->serializeCollege($college), 'message' => 'College updated.']);
+    }
+
+    #[Route('/academic/colleges/{id}', name: 'api_admin_college_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function deleteCollege(College $college, EntityManagerInterface $em, AuditLogger $audit, NotificationService $notifications): JsonResponse
+    {
+        if ($college->getDepartments()->count() > 0) {
+            return $this->json(['message' => 'Cannot delete a college that has departments. Remove or reassign them first.'], 409);
+        }
+        $id = $college->getId();
+        $name = $college->getName();
+        $em->remove($college);
+        $em->flush();
+        $audit->log('delete_college', 'College', $id, 'Deleted college: ' . $name);
+        $notifications->createAdminNotification('academic.college_deleted', 'College deleted', 'Deleted college: ' . $name, AdminNotification::SEVERITY_WARNING, '/academic', 'College', $id);
+
+        return $this->json(['message' => 'College deleted.']);
+    }
+
+    #[Route('/academic/departments', name: 'api_admin_department_create', methods: ['POST'])]
+    public function createDepartment(Request $request, EntityManagerInterface $em, DepartmentRepository $departmentRepo, CollegeRepository $collegeRepo, AuditLogger $audit, NotificationService $notifications): JsonResponse
+    {
+        $payload = $this->jsonPayload($request);
+        $name = trim((string) ($payload['name'] ?? ''));
+        $code = strtoupper(trim((string) ($payload['code'] ?? '')));
+        $description = trim((string) ($payload['description'] ?? '')) ?: null;
+        $isActive = (bool) ($payload['isActive'] ?? true);
+        $collegeId = is_numeric($payload['collegeId'] ?? null) ? (int) $payload['collegeId'] : null;
+        $errors = [];
+
+        if ($name === '') { $errors['name'] = 'Department name is required.'; }
+        if ($code === '') { $errors['code'] = 'Department code is required.'; }
+        elseif ($departmentRepo->findOneBy(['code' => $code]) !== null) { $errors['code'] = 'This code is already in use.'; }
+        if ($name !== '' && $departmentRepo->findOneBy(['name' => $name]) !== null) { $errors['name'] = 'A department with this name already exists.'; }
+
+        $college = $collegeId !== null ? $collegeRepo->find($collegeId) : null;
+        if ($college === null) { $errors['collegeId'] = 'Please select a valid college.'; }
+
+        if ($errors !== []) {
+            return $this->json(['message' => 'Department data is invalid.', 'errors' => $errors], 422);
+        }
+
+        $department = (new Department())->setName($name)->setCode($code)->setDescription($description)->setIsActive($isActive)->setCollege($college);
+        $em->persist($department);
+        $em->flush();
+
+        $audit->log('create_department', 'Department', $department->getId(), 'Created department: ' . $department->getName());
+        $notifications->createAdminNotification('academic.department_created', 'Department created', 'Created department: ' . $department->getName(), AdminNotification::SEVERITY_INFO, '/academic', 'Department', $department->getId());
+
+        return $this->json(['item' => $this->serializeDepartment($department), 'message' => 'Department created.'], 201);
+    }
+
+    #[Route('/academic/departments/{id}', name: 'api_admin_department_update', methods: ['PATCH'], requirements: ['id' => '\d+'])]
+    public function updateDepartment(Department $department, Request $request, EntityManagerInterface $em, DepartmentRepository $departmentRepo, CollegeRepository $collegeRepo, AuditLogger $audit): JsonResponse
+    {
+        $payload = $this->jsonPayload($request);
+        $name = trim((string) ($payload['name'] ?? ''));
+        $code = strtoupper(trim((string) ($payload['code'] ?? '')));
+        $description = trim((string) ($payload['description'] ?? '')) ?: null;
+        $isActive = (bool) ($payload['isActive'] ?? true);
+        $collegeId = is_numeric($payload['collegeId'] ?? null) ? (int) $payload['collegeId'] : null;
+        $errors = [];
+
+        if ($name === '') { $errors['name'] = 'Department name is required.'; }
+        if ($code === '') { $errors['code'] = 'Department code is required.'; }
+        else {
+            $existing = $departmentRepo->findOneBy(['code' => $code]);
+            if ($existing !== null && $existing->getId() !== $department->getId()) { $errors['code'] = 'This code is already in use.'; }
+        }
+        if ($name !== '') {
+            $existing = $departmentRepo->findOneBy(['name' => $name]);
+            if ($existing !== null && $existing->getId() !== $department->getId()) { $errors['name'] = 'A department with this name already exists.'; }
+        }
+
+        $college = $collegeId !== null ? $collegeRepo->find($collegeId) : null;
+        if ($college === null) { $errors['collegeId'] = 'Please select a valid college.'; }
+
+        if ($errors !== []) {
+            return $this->json(['message' => 'Department data is invalid.', 'errors' => $errors], 422);
+        }
+
+        $department->setName($name)->setCode($code)->setDescription($description)->setIsActive($isActive)->setCollege($college);
+        $em->flush();
+        $audit->log('update_department', 'Department', $department->getId(), 'Updated department: ' . $department->getName());
+
+        return $this->json(['item' => $this->serializeDepartment($department), 'message' => 'Department updated.']);
+    }
+
+    #[Route('/academic/departments/{id}', name: 'api_admin_department_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function deleteDepartment(Department $department, EntityManagerInterface $em, AuditLogger $audit, NotificationService $notifications): JsonResponse
+    {
+        $id = $department->getId();
+        $name = $department->getName();
+        $em->remove($department);
+        $em->flush();
+        $audit->log('delete_department', 'Department', $id, 'Deleted department: ' . $name);
+        $notifications->createAdminNotification('academic.department_deleted', 'Department deleted', 'Deleted department: ' . $name, AdminNotification::SEVERITY_WARNING, '/academic', 'Department', $id);
+
+        return $this->json(['message' => 'Department deleted.']);
+    }
+
     #[Route('/qr-registration', name: 'api_admin_qr_registration', methods: ['GET'])]
     public function qrRegistration(QrRegistrationBatchRepository $batchRepo): JsonResponse
     {

@@ -91,7 +91,7 @@ export const NAV_DATA = [
           },
           {
             title: "Settings",
-            url: "/settings",
+            url: "/pages/settings",
           },
         ],
       },

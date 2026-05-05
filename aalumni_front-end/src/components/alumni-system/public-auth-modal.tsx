@@ -2,6 +2,7 @@
 
 import { RegisterForm } from "@/app/auth/sign-up/_components/register-form";
 import { CloseIcon } from "@/assets/icons";
+import { alumni } from "@/assets/logos";
 import Signin from "@/components/Auth/Signin";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -73,15 +74,25 @@ export function PublicAuthModal({
       <div className="my-auto w-full max-w-5xl overflow-hidden rounded-[32px] bg-white shadow-2 ring-1 ring-black/5 dark:bg-gray-dark">
         <div className="grid lg:grid-cols-[minmax(280px,0.76fr)_minmax(0,1fr)]">
           <div className="hidden bg-[linear-gradient(135deg,#0F3D91_0%,#1C3FB7_42%,#5475E5_100%)] px-8 py-10 text-white lg:flex lg:flex-col lg:justify-between">
-            <div className="rounded-[28px] bg-white/10 p-8 ring-1 ring-white/15">
-              <Image
-                src="/images/logo/logo.svg"
-                alt="NORSU Alumni Tracker logo"
-                width={174}
-                height={30}
-                priority
-                className="h-auto w-full"
-              />
+            <div className="flex items-center gap-4 rounded-[28px] bg-white/10 p-6 ring-1 ring-white/15">
+              <div className="size-14 shrink-0 overflow-hidden rounded-full">
+                <Image
+                  src={alumni}
+                  alt="NORSU Alumni Tracker logo"
+                  width={56}
+                  height={56}
+                  priority
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <span>
+                <span className="block text-lg font-black leading-none text-white">
+                  NORSU Alumni
+                </span>
+                <span className="mt-1 block text-sm font-semibold text-white/70">
+                  Tracker System
+                </span>
+              </span>
             </div>
 
             <div>

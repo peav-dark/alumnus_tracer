@@ -9,11 +9,6 @@ use App\Repository\SurveyCampaignRepository;
 use App\Repository\SurveyInvitationRepository;
 use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
-<<<<<<< HEAD
-=======
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Component\Mime\Address;
->>>>>>> f177e4c3d6fc13bd04615706178b5f29b105da89
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Mime\Address;
@@ -76,7 +71,6 @@ final class SendSurveyInvitationBatchMessageHandler
             }
 
             try {
-<<<<<<< HEAD
                 $invitationUrl = $baseUrl . '/survey/invitations/' . $invitation->getToken();
 
                 $htmlBody = $this->renderEmailHtml([
@@ -93,18 +87,6 @@ final class SendSurveyInvitationBatchMessageHandler
                     ->subject($campaign->getEmailSubject())
                     ->html($htmlBody)
                     ->text($this->renderEmailText($campaign->getEmailBody(), $invitationUrl, $invitation->getExpiresAt()));
-=======
-                $email = (new TemplatedEmail())
-                    ->to(new Address($emailAddress, $alumni?->getFullName() ?: $recipient->getFullName()))
-                    ->subject($campaign->getEmailSubject())
-                    ->htmlTemplate('emails/survey_invitation.html.twig')
-                    ->textTemplate('emails/survey_invitation.txt.twig')
-                    ->context([
-                        'campaign' => $campaign,
-                        'invitation' => $invitation,
-                        'invitationUrl' => $baseUrl . '/survey/invitations/' . $invitation->getToken(),
-                    ]);
->>>>>>> f177e4c3d6fc13bd04615706178b5f29b105da89
 
                 $this->mailer->send($email);
 
@@ -167,12 +149,10 @@ final class SendSurveyInvitationBatchMessageHandler
 
         return $configuredUrl !== '' ? $configuredUrl : $fallbackBaseUrl;
     }
-<<<<<<< HEAD
 
     /**
      * Calls the Next.js /api/email/survey-invitation endpoint to get
      * a fully rendered, branded HTML email string.
-     * Calls the Next.js /api/email/survey-invitation endpoint.
      * Falls back to plain inline HTML if Next.js is unreachable.
      *
      * @param array<string,string|null> $data
@@ -251,7 +231,6 @@ HTML;
     }
 
     private function renderEmailText(string $emailBody, string $invitationUrl, ?\DateTimeInterface $expiresAt): string
-
     {
         $lines = [
             strip_tags($emailBody),
@@ -270,6 +249,4 @@ HTML;
 
         return implode("\n", $lines);
     }
-=======
->>>>>>> f177e4c3d6fc13bd04615706178b5f29b105da89
 }
