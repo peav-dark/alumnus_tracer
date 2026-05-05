@@ -66,10 +66,12 @@ export function Panel({
   title,
   children,
   className,
+  action,
 }: {
   title?: string;
   children: ReactNode;
   className?: string;
+  action?: ReactNode;
 }) {
   return (
     <section
@@ -79,10 +81,11 @@ export function Panel({
       )}
     >
       {title && (
-        <div className="border-b border-stroke px-5 py-4 dark:border-dark-3 sm:px-7.5">
+        <div className="flex items-center justify-between gap-4 border-b border-stroke px-5 py-4 dark:border-dark-3 sm:px-7.5">
           <h2 className="text-xl font-bold text-dark dark:text-white">
             {title}
           </h2>
+          {action}
         </div>
       )}
       {children}
