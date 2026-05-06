@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getAdminUsers } from "@/lib/api";
+import { getAdminUsers, getAdminAcademic } from "@/lib/api";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -33,12 +33,21 @@ export default async function UsersPage() {
   const pending = users.filter((user) => user.accountStatus === "pending").length;
   const linked = users.filter((user) => user.hasAlumniRecord).length;
 
+  // Fetch all active colleges and departments from academic management
+  const academicResponse = await getAdminAcademic();
+  const collegeOptions = (academicResponse?.colleges ?? [])
+    .map((c) => c.name)
+    .sort();
+  const departmentOptions = (academicResponse?.departments ?? [])
+    .map((d) => d.name)
+    .sort();
+
   return (
     <>
       <FeatureHeader
         title="Manage Users"
         description="Review alumni, staff, and admin accounts from the NORSU Alumni Tracker user registry."
-        actions={<CreateUserAction />}
+        actions={<CreateUserAction collegeOptions={collegeOptions} departmentOptions={departmentOptions} />}
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -124,7 +133,7 @@ export default async function UsersPage() {
                       {formatDate(user.dateRegistered)}
                     </TableCell>
                     <TableCell className="pr-5 sm:pr-7.5">
-                      <UserCrudActions user={user} />
+                      <UserCrudActions user={user} collegeOptions={collegeOptions} departmentOptions={departmentOptions} />
                     </TableCell>
                   </TableRow>
                 ))}

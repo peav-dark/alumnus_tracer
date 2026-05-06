@@ -32,31 +32,32 @@ export function CreateCollegeAction() {
 
 export function CollegeRowActions({ college }: { college: College }) {
   const router = useRouter();
-  const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const nextActive = !college.isActive;
+  const actionLabel = college.isActive ? "Deactivate" : "Activate";
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Delete college "${college.name}"?\n\nThis cannot be undone.`)) return;
-    setDeleting(true);
+  const handleToggleStatus = async () => {
+    if (!window.confirm(`${actionLabel} college "${college.name}"?`)) return;
+    setSaving(true);
     setError("");
     try {
-      const res = await fetch(`/api/admin/academic/colleges/${college.id}`, { method: "DELETE" });
-      const body = (await res.json().catch(() => ({}))) as ApiResponse & { departmentCount?: number };
+      const res = await fetch(`/api/admin/academic/colleges/${college.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: nextActive }),
+      });
+      const body = (await res.json().catch(() => ({}))) as ApiResponse;
       if (!res.ok) {
-        if (res.status === 404) {
-          router.refresh();
-          return;
-        }
-        if (res.status === 409 && body.departmentCount) {
-          setError(`This college still has ${body.departmentCount} department${body.departmentCount === 1 ? '' : 's'}. Delete all departments in it first.`);
-        } else {
-          setError(body.message || body.error || "Unable to delete college.");
-        }
+        setError(body.message || body.error || "Unable to update college status.");
         return;
       }
       router.refresh();
-    } catch { setError("Unable to reach the server."); }
-    finally { setDeleting(false); }
+    } catch {
+      setError("Unable to reach the server.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -77,13 +78,13 @@ export function CollegeRowActions({ college }: { college: College }) {
         />
         <button
           type="button"
-          title="Delete college"
-          onClick={handleDelete}
-          disabled={deleting}
-          className="grid size-8 place-items-center rounded-md border border-red/30 text-red transition hover:bg-red/[0.07] disabled:cursor-not-allowed disabled:opacity-50"
+          title={college.isActive ? "Set college inactive" : "Set college active"}
+          onClick={handleToggleStatus}
+          disabled={saving}
+          className="grid size-8 place-items-center rounded-md border border-amber-300/60 text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-400/40 dark:text-amber-300 dark:hover:bg-amber-400/10"
         >
-          <span className="sr-only">{deleting ? "Deleting college" : "Delete college"}</span>
-          {deleting ? <SpinnerIcon /> : <TrashIcon />}
+          <span className="sr-only">{saving ? `${actionLabel} college` : `${actionLabel} college`}</span>
+          {saving ? <SpinnerIcon /> : college.isActive ? <PauseIcon /> : <PlayIcon />}
         </button>
       </div>
       {error && <p className="text-right text-xs font-medium text-red">{error}</p>}
@@ -305,27 +306,32 @@ export function DepartmentRowActions({
   colleges: College[];
 }) {
   const router = useRouter();
-  const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const nextActive = !department.isActive;
+  const actionLabel = department.isActive ? "Deactivate" : "Activate";
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Delete department "${department.name}"?\n\nThis cannot be undone.`)) return;
-    setDeleting(true);
+  const handleToggleStatus = async () => {
+    if (!window.confirm(`${actionLabel} department "${department.name}"?`)) return;
+    setSaving(true);
     setError("");
     try {
-      const res = await fetch(`/api/admin/academic/departments/${department.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/academic/departments/${department.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: nextActive }),
+      });
       const body = (await res.json().catch(() => ({}))) as ApiResponse;
       if (!res.ok) {
-        if (res.status === 404) {
-          router.refresh();
-          return;
-        }
-        setError(body.message || body.error || "Unable to delete department.");
+        setError(body.message || body.error || "Unable to update department status.");
         return;
       }
       router.refresh();
-    } catch { setError("Unable to reach the server."); }
-    finally { setDeleting(false); }
+    } catch {
+      setError("Unable to reach the server.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -347,13 +353,13 @@ export function DepartmentRowActions({
         />
         <button
           type="button"
-          title="Delete department"
-          onClick={handleDelete}
-          disabled={deleting}
-          className="grid size-8 place-items-center rounded-md border border-red/30 text-red transition hover:bg-red/[0.07] disabled:cursor-not-allowed disabled:opacity-50"
+          title={department.isActive ? "Set department inactive" : "Set department active"}
+          onClick={handleToggleStatus}
+          disabled={saving}
+          className="grid size-8 place-items-center rounded-md border border-amber-300/60 text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-400/40 dark:text-amber-300 dark:hover:bg-amber-400/10"
         >
-          <span className="sr-only">{deleting ? "Deleting department" : "Delete department"}</span>
-          {deleting ? <SpinnerIcon /> : <TrashIcon />}
+          <span className="sr-only">{saving ? `${actionLabel} department` : `${actionLabel} department`}</span>
+          {saving ? <SpinnerIcon /> : department.isActive ? <PauseIcon /> : <PlayIcon />}
         </button>
       </div>
       {error && <p className="text-right text-xs font-medium text-red">{error}</p>}
@@ -630,6 +636,22 @@ function TrashIcon() {
   return (
     <svg className="size-3.5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
       <path d="M4.167 5.833h11.666M8.333 8.333v5M11.667 8.333v5M5.833 5.833l.834 10h6.666l.834-10M8.333 5.833V4.167h3.334v1.666" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg className="size-3.5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M6.5 4.5v11M13.5 4.5v11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg className="size-3.5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M7.25 5.5v9l7-4.5-7-4.5Z" fill="currentColor" />
     </svg>
   );
 }

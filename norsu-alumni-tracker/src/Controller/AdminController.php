@@ -191,28 +191,10 @@ class AdminController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function editUser(User $user, Request $request, EntityManagerInterface $em): Response
     {
-        $currentUser = $this->getUser();
-        $originalRoles = $user->getRoles();
-
         $form = $this->createForm(UserType::class, $user);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $selectedRole = $form->get('roles')->getData();
-            if (is_string($selectedRole) && $selectedRole !== '') {
-                // Ensure Doctrine receives roles as an array when dropdown returns a string.
-                $user->setRoles([$selectedRole]);
-            } elseif (is_array($selectedRole)) {
-                $user->setRoles($selectedRole);
-            }
-
-            if ($currentUser instanceof User && $currentUser->getId() === $user->getId() && $originalRoles !== $user->getRoles()) {
-                $user->setRoles($originalRoles);
-                $this->addFlash('danger', 'You cannot change your own role.');
-
-                return $this->redirectToRoute('admin_user_edit', ['id' => $user->getId()]);
-            }
-
             try {
                 $em->flush();
                 $this->addFlash('success', 'User account updated successfully.');

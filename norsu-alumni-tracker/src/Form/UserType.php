@@ -28,54 +28,21 @@ class UserType extends AbstractType
                 'label' => 'Email Address',
                 'attr' => ['class' => 'form-input'],
             ])
-            ->add('accountStatus', ChoiceType::class, [
-                'label' => 'Account Status',
-                'choices' => [
-                    'Active' => 'active',
-                    'Inactive' => 'inactive',
-                    'Pending' => 'pending',
-                ],
-                'attr' => ['class' => 'form-select'],
+            ->add('alumniCollege', TextType::class, [
+                'label' => 'College',
+                'property_path' => 'alumni.college',
+                'required' => false,
+                'attr' => ['class' => 'form-input'],
             ])
-            ->add('roles', ChoiceType::class, [
-                'label' => 'Roles',
-                'choices' => [
-                    'Alumni' => 'ROLE_USER',
-                    'Staff' => 'ROLE_STAFF',
-                    'Admin' => 'ROLE_ADMIN',
-                ],
-                'attr' => ['class' => 'form-select'],
-                'empty_data' => 'ROLE_USER',
+            ->add('alumniDepartment', TextType::class, [
+                'label' => 'Department',
+                'property_path' => 'alumni.degreeProgram',
+                'required' => false,
+                'attr' => ['class' => 'form-input'],
             ]);
 
-        $builder->get('roles')->addModelTransformer(new CallbackTransformer(
-            function (?array $rolesAsArray): string {
-                if (is_array($rolesAsArray) && in_array('ROLE_ADMIN', $rolesAsArray, true)) {
-                    return 'ROLE_ADMIN';
-                }
+        // Map unmapped alumni fields to nested Alumni entity using property paths during submit in controller
 
-                if (is_array($rolesAsArray) && in_array('ROLE_STAFF', $rolesAsArray, true)) {
-                    return 'ROLE_STAFF';
-                }
-
-                return 'ROLE_USER';
-            },
-            function (string|array|null $roleAsString): array {
-                if (is_array($roleAsString)) {
-                    return array_values(array_unique($roleAsString));
-                }
-
-                if ($roleAsString === 'ROLE_ADMIN') {
-                    return ['ROLE_ADMIN'];
-                }
-
-                if ($roleAsString === 'ROLE_STAFF') {
-                    return ['ROLE_STAFF'];
-                }
-
-                return ['ROLE_USER'];
-            }
-        ));
     }
 
     public function configureOptions(OptionsResolver $resolver): void

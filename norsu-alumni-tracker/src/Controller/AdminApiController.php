@@ -291,6 +291,9 @@ final class AdminApiController extends AbstractController
     public function createUser(
         Request $request,
         UserRepository $userRepo,
+        AlumniRepository $alumniRepo,
+        CollegeRepository $collegeRepo,
+        DepartmentRepository $departmentRepo,
         EntityManagerInterface $em,
         UserPasswordHasherInterface $passwordHasher,
         AuditLogger $audit,
@@ -301,7 +304,8 @@ final class AdminApiController extends AbstractController
         $email = strtolower(trim((string) ($payload['email'] ?? '')));
         $schoolId = trim((string) ($payload['schoolId'] ?? ''));
         $role = trim((string) ($payload['role'] ?? 'alumni'));
-        $status = strtolower(trim((string) ($payload['accountStatus'] ?? 'active')));
+        $alumniCollege = trim((string) ($payload['alumniCollege'] ?? ''));
+        $alumniDepartment = trim((string) ($payload['alumniDepartment'] ?? ''));
         $password = (string) ($payload['password'] ?? '');
         $errors = [];
 
@@ -325,12 +329,17 @@ final class AdminApiController extends AbstractController
             $errors['schoolId'] = 'This school ID is already registered.';
         }
 
-        if (!in_array($role, ['admin', 'staff', 'alumni'], true)) {
-            $errors['role'] = 'Role must be admin, staff, or alumni.';
+        if (!in_array($role, ['admin', 'alumni'], true)) {
+            $errors['role'] = 'Role must be admin or alumni.';
         }
 
-        if (!in_array($status, ['pending', 'active', 'inactive'], true)) {
-            $errors['accountStatus'] = 'Status must be pending, active, or inactive.';
+        if ($role === 'alumni') {
+            if ($alumniCollege === '') {
+                $errors['alumniCollege'] = 'Please select a college.';
+            }
+            if ($alumniDepartment === '') {
+                $errors['alumniDepartment'] = 'Please select a department.';
+            }
         }
 
         if ($password === '') {
@@ -350,15 +359,35 @@ final class AdminApiController extends AbstractController
             ->setLastName($lastName)
             ->setEmail($email)
             ->setSchoolId($schoolId !== '' ? $schoolId : null)
-            ->setAccountStatus($status)
+            ->setAccountStatus('active')
             ->setEmailVerifiedAt(new \DateTimeImmutable())
             ->setRoles(match ($role) {
                 'admin' => ['ROLE_ADMIN'],
-                'staff' => ['ROLE_STAFF'],
                 default => [User::ROLE_ALUMNI],
             });
 
         $user->setPassword($passwordHasher->hashPassword($user, $password));
+
+        // Create Alumni record for alumni users
+        if ($role === 'alumni') {
+            $college = $collegeRepo->findOneBy(['name' => $alumniCollege]);
+            $department = $departmentRepo->findOneBy(['name' => $alumniDepartment]);
+
+            if ($college === null || $department === null) {
+                return $this->json(['message' => 'Invalid college or department.', 'errors' => ['alumniCollege' => 'College or department not found.']], 422);
+            }
+
+            $alumni = (new Alumni())
+                ->setStudentNumber($schoolId !== '' ? $schoolId : uniqid('STU_', false))
+                ->setFirstName($firstName)
+                ->setLastName($lastName)
+                ->setEmailAddress($email)
+                ->setCollege($alumniCollege)
+                ->setDegreeProgram($alumniDepartment)
+                ->setUser($user);
+
+            $em->persist($alumni);
+        }
 
         $em->persist($user);
         $em->flush();
@@ -396,8 +425,8 @@ final class AdminApiController extends AbstractController
         $lastName = trim((string) ($payload['lastName'] ?? ''));
         $email = strtolower(trim((string) ($payload['email'] ?? '')));
         $schoolId = trim((string) ($payload['schoolId'] ?? ''));
-        $role = trim((string) ($payload['role'] ?? 'alumni'));
-        $status = strtolower(trim((string) ($payload['accountStatus'] ?? 'active')));
+        $alumniCollege = trim((string) ($payload['alumniCollege'] ?? ''));
+        $alumniDepartment = trim((string) ($payload['alumniDepartment'] ?? ''));
         $password = (string) ($payload['password'] ?? '');
         $errors = [];
 
@@ -427,26 +456,12 @@ final class AdminApiController extends AbstractController
             }
         }
 
-        if (!in_array($role, ['admin', 'staff', 'alumni'], true)) {
-            $errors['role'] = 'Role must be admin, staff, or alumni.';
-        }
-
-        if (!in_array($status, ['pending', 'active', 'inactive'], true)) {
-            $errors['accountStatus'] = 'Status must be pending, active, or inactive.';
-        }
-
         if ($password !== '') {
             if (strlen($password) < 8) {
                 $errors['password'] = 'Password must be at least 8 characters.';
             } elseif (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/', $password)) {
                 $errors['password'] = 'Password must contain uppercase, lowercase, number, and special character.';
             }
-        }
-
-        $currentUser = $this->getUser();
-
-        if ($currentUser instanceof User && $currentUser->getId() === $user->getId() && $role !== $this->primaryRole($user)) {
-            $errors['role'] = 'You cannot change your own role.';
         }
 
         if ($errors !== []) {
@@ -457,13 +472,18 @@ final class AdminApiController extends AbstractController
             ->setFirstName($firstName)
             ->setLastName($lastName)
             ->setEmail($email)
-            ->setSchoolId($schoolId !== '' ? $schoolId : null)
-            ->setAccountStatus($status)
-            ->setRoles(match ($role) {
-                'admin' => ['ROLE_ADMIN'],
-                'staff' => ['ROLE_STAFF'],
-                default => [User::ROLE_ALUMNI],
-            });
+            ->setSchoolId($schoolId !== '' ? $schoolId : null);
+
+        // Apply alumni college and department if the user has an alumni record
+        $alumni = $user->getAlumni();
+        if ($alumni !== null) {
+            if ($alumniCollege !== '') {
+                $alumni->setCollege($alumniCollege);
+            }
+            if ($alumniDepartment !== '') {
+                $alumni->setDegreeProgram($alumniDepartment);
+            }
+        }
 
         if ($password !== '') {
             $user->setPassword($passwordHasher->hashPassword($user, $password));
@@ -933,19 +953,23 @@ final class AdminApiController extends AbstractController
     public function updateCollege(College $college, Request $request, EntityManagerInterface $em, CollegeRepository $collegeRepo, AuditLogger $audit): JsonResponse
     {
         $payload = $this->jsonPayload($request);
-        $name = trim((string) ($payload['name'] ?? ''));
-        $code = strtoupper(trim((string) ($payload['code'] ?? '')));
-        $description = trim((string) ($payload['description'] ?? '')) ?: null;
-        $isActive = isset($payload['isActive']) ? filter_var($payload['isActive'], FILTER_VALIDATE_BOOL) : true;
+        $nameProvided = array_key_exists('name', $payload);
+        $codeProvided = array_key_exists('code', $payload);
+        $descriptionProvided = array_key_exists('description', $payload);
+        $isActiveProvided = array_key_exists('isActive', $payload);
+        $name = $nameProvided ? trim((string) ($payload['name'] ?? '')) : $college->getName();
+        $code = $codeProvided ? strtoupper(trim((string) ($payload['code'] ?? ''))) : $college->getCode();
+        $description = $descriptionProvided ? (trim((string) ($payload['description'] ?? '')) ?: null) : $college->getDescription();
+        $isActive = $isActiveProvided ? filter_var($payload['isActive'], FILTER_VALIDATE_BOOL) : $college->isIsActive();
         $errors = [];
 
-        if ($name === '') { $errors['name'] = 'College name is required.'; }
-        if ($code === '') { $errors['code'] = 'College code is required.'; }
-        else {
+        if ($nameProvided && $name === '') { $errors['name'] = 'College name is required.'; }
+        if ($codeProvided && $code === '') { $errors['code'] = 'College code is required.'; }
+        elseif ($codeProvided) {
             $existing = $collegeRepo->findOneBy(['code' => $code]);
             if ($existing !== null && $existing->getId() !== $college->getId()) { $errors['code'] = 'This code is already in use.'; }
         }
-        if ($name !== '') {
+        if ($nameProvided && $name !== '') {
             $existing = $collegeRepo->findOneBy(['name' => $name]);
             if ($existing !== null && $existing->getId() !== $college->getId()) { $errors['name'] = 'A college with this name already exists.'; }
         }
@@ -1028,26 +1052,31 @@ final class AdminApiController extends AbstractController
     public function updateDepartment(Department $department, Request $request, EntityManagerInterface $em, DepartmentRepository $departmentRepo, CollegeRepository $collegeRepo, AuditLogger $audit): JsonResponse
     {
         $payload = $this->jsonPayload($request);
-        $name = trim((string) ($payload['name'] ?? ''));
-        $code = strtoupper(trim((string) ($payload['code'] ?? '')));
-        $description = trim((string) ($payload['description'] ?? '')) ?: null;
-        $isActive = isset($payload['isActive']) ? filter_var($payload['isActive'], FILTER_VALIDATE_BOOL) : true;
-        $collegeId = is_numeric($payload['collegeId'] ?? null) ? (int) $payload['collegeId'] : null;
+        $nameProvided = array_key_exists('name', $payload);
+        $codeProvided = array_key_exists('code', $payload);
+        $descriptionProvided = array_key_exists('description', $payload);
+        $isActiveProvided = array_key_exists('isActive', $payload);
+        $collegeIdProvided = array_key_exists('collegeId', $payload);
+        $name = $nameProvided ? trim((string) ($payload['name'] ?? '')) : $department->getName();
+        $code = $codeProvided ? strtoupper(trim((string) ($payload['code'] ?? ''))) : $department->getCode();
+        $description = $descriptionProvided ? (trim((string) ($payload['description'] ?? '')) ?: null) : $department->getDescription();
+        $isActive = $isActiveProvided ? filter_var($payload['isActive'], FILTER_VALIDATE_BOOL) : $department->isIsActive();
+        $collegeId = $collegeIdProvided && is_numeric($payload['collegeId'] ?? null) ? (int) $payload['collegeId'] : $department->getCollege()?->getId();
         $errors = [];
 
-        if ($name === '') { $errors['name'] = 'Department name is required.'; }
-        if ($code === '') { $errors['code'] = 'Department code is required.'; }
-        else {
+        if ($nameProvided && $name === '') { $errors['name'] = 'Department name is required.'; }
+        if ($codeProvided && $code === '') { $errors['code'] = 'Department code is required.'; }
+        elseif ($codeProvided) {
             $existing = $departmentRepo->findOneBy(['code' => $code]);
             if ($existing !== null && $existing->getId() !== $department->getId()) { $errors['code'] = 'This code is already in use.'; }
         }
-        if ($name !== '') {
+        if ($nameProvided && $name !== '') {
             $existing = $departmentRepo->findOneBy(['name' => $name]);
             if ($existing !== null && $existing->getId() !== $department->getId()) { $errors['name'] = 'A department with this name already exists.'; }
         }
 
         $college = ($collegeId !== null && $collegeId > 0) ? $collegeRepo->find($collegeId) : null;
-        if ($college === null) { $errors['collegeId'] = 'Please select a valid college.'; }
+        if ($collegeIdProvided && $college === null) { $errors['collegeId'] = 'Please select a valid college.'; }
 
         if ($errors !== []) {
             return $this->json(['message' => 'Department data is invalid.', 'errors' => $errors], 422);
@@ -1055,7 +1084,10 @@ final class AdminApiController extends AbstractController
 
         /** @var College $college */
         try {
-            $department->setName($name)->setCode($code)->setDescription($description)->setIsActive($isActive)->setCollege($college);
+            $department->setName($name)->setCode($code)->setDescription($description)->setIsActive($isActive);
+            if ($college !== null) {
+                $department->setCollege($college);
+            }
             $em->flush();
             $audit->log('update_department', 'Department', $department->getId(), 'Updated department: ' . $department->getName());
         } catch (\Throwable $e) {

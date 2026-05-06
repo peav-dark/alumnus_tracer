@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type ApiResponse = {
   message?: string;
@@ -27,7 +27,18 @@ type UserFormState = {
   email: string;
   schoolId: string;
   role: string;
-  accountStatus: string;
+  alumniCollege: string;
+  alumniDepartment: string;
+  password: string;
+};
+
+type EditUserFormState = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  schoolId: string;
+  alumniCollege: string;
+  alumniDepartment: string;
   password: string;
 };
 
@@ -37,7 +48,8 @@ const blankUserForm: UserFormState = {
   email: "",
   schoolId: "",
   role: "alumni",
-  accountStatus: "active",
+  alumniCollege: "",
+  alumniDepartment: "",
   password: "",
 };
 
@@ -47,17 +59,16 @@ function formFromUser(user: ManageUser): UserFormState {
     lastName: user.lastName ?? "",
     email: user.email ?? "",
     schoolId: user.schoolId ?? "",
-    role: ["admin", "staff", "alumni"].includes(user.primaryRole)
+    role: ["admin", "alumni"].includes(user.primaryRole)
       ? user.primaryRole
       : "alumni",
-    accountStatus: ["pending", "active", "inactive"].includes(user.accountStatus)
-      ? user.accountStatus
-      : "active",
+    alumniCollege: "",
+    alumniDepartment: "",
     password: "",
   };
 }
 
-export function CreateUserAction() {
+export function CreateUserAction({ collegeOptions = [], departmentOptions = [] }: { collegeOptions?: string[]; departmentOptions?: string[] } = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -147,31 +158,38 @@ export function CreateUserAction() {
                 <Field label="School ID" value={form.schoolId} error={fieldErrors.schoolId} onChange={(value) => setForm((current) => ({ ...current, schoolId: value }))} />
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <SelectField
                   label="Role"
                   value={form.role}
                   error={fieldErrors.role}
                   options={[
                     ["alumni", "Alumni"],
-                    ["staff", "Staff"],
                     ["admin", "Admin"],
                   ]}
                   onChange={(value) => setForm((current) => ({ ...current, role: value }))}
                 />
-                <SelectField
-                  label="Status"
-                  value={form.accountStatus}
-                  error={fieldErrors.accountStatus}
-                  options={[
-                    ["active", "Active"],
-                    ["pending", "Pending"],
-                    ["inactive", "Inactive"],
-                  ]}
-                  onChange={(value) => setForm((current) => ({ ...current, accountStatus: value }))}
-                />
                 <Field label="Password" type="password" value={form.password} error={fieldErrors.password} onChange={(value) => setForm((current) => ({ ...current, password: value }))} />
               </div>
+
+              {form.role === "alumni" && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <SelectField
+                    label="College"
+                    value={form.alumniCollege}
+                    error={fieldErrors.alumniCollege}
+                    options={collegeOptions.map((c) => [c, c])}
+                    onChange={(value) => setForm((current) => ({ ...current, alumniCollege: value }))}
+                  />
+                  <SelectField
+                    label="Department"
+                    value={form.alumniDepartment}
+                    error={fieldErrors.alumniDepartment}
+                    options={departmentOptions.map((d) => [d, d])}
+                    onChange={(value) => setForm((current) => ({ ...current, alumniDepartment: value }))}
+                  />
+                </div>
+              )}
 
               {error && (
                 <p className="rounded-lg bg-red/[0.08] px-4 py-3 text-sm font-medium text-red">
@@ -204,7 +222,7 @@ export function CreateUserAction() {
   );
 }
 
-export function UserCrudActions({ user }: { user: ManageUser }) {
+export function UserCrudActions({ user, collegeOptions = [], departmentOptions = [] }: { user: ManageUser; collegeOptions?: string[]; departmentOptions?: string[] }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -212,7 +230,15 @@ export function UserCrudActions({ user }: { user: ManageUser }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState<UserFormState>(() => formFromUser(user));
+  const [form, setForm] = useState<EditUserFormState>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    schoolId: "",
+    alumniCollege: "",
+    alumniDepartment: "",
+    password: "",
+  });
   const statusToggle =
     user.accountStatus === "active"
       ? {
@@ -228,8 +254,26 @@ export function UserCrudActions({ user }: { user: ManageUser }) {
           tone: "primary" as const,
         };
 
+  // Auto-dismiss message after 5 seconds
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
   const openEdit = () => {
-    setForm(formFromUser(user));
+    setForm({
+      firstName: user.firstName ?? "",
+      lastName: user.lastName ?? "",
+      email: user.email ?? "",
+      schoolId: user.schoolId ?? "",
+      alumniCollege: "",
+      alumniDepartment: "",
+      password: "",
+    });
     setError("");
     setMessage("");
     setFieldErrors({});
@@ -293,41 +337,9 @@ export function UserCrudActions({ user }: { user: ManageUser }) {
     }
   };
 
-  const deleteUser = async () => {
-    if (!window.confirm(`Delete ${user.fullName}? This cannot be undone.`)) {
-      return;
-    }
-
-    setLoadingAction("delete");
-    setMessage("");
-    setError("");
-
-    try {
-      const response = await fetch(`/api/admin/users/${user.id}`, {
-        method: "DELETE",
-      });
-      const body = (await response.json().catch(() => ({}))) as ApiResponse;
-
-      if (!response.ok) {
-        setError(body.message || body.error || "Unable to delete user.");
-        return;
-      }
-
-      setMessage(body.message || "User deleted.");
-      router.refresh();
-    } catch {
-      setError("Unable to reach the user endpoint.");
-    } finally {
-      setLoadingAction(null);
-    }
-  };
-
   return (
-    <div className="flex min-w-0 items-end gap-2">
-      <div
-        className="inline-flex flex-wrap items-center justify-end [column-gap:8px] [row-gap:8px] [&>*]:m-0 [&>*]:shrink-0"
-        style={{ gap: "8px" }}
-      >
+    <div className="flex flex-col items-end gap-1">
+      <div className="inline-flex items-center gap-2">
         <ActionButton
           label="Edit"
           icon="pencil"
@@ -343,23 +355,8 @@ export function UserCrudActions({ user }: { user: ManageUser }) {
           loading={loadingAction === statusToggle.status}
           onClick={() => updateStatus(statusToggle.status)}
         />
-        <ActionButton
-          label="Pending"
-          icon="clock"
-          disabled={user.accountStatus === "pending" || loadingAction !== null}
-          loading={loadingAction === "pending"}
-          onClick={() => updateStatus("pending")}
-        />
-        <ActionButton
-          label="Delete"
-          icon="trash"
-          tone="danger"
-          disabled={loadingAction !== null}
-          loading={loadingAction === "delete"}
-          onClick={deleteUser}
-        />
       </div>
-      {message && <p className="text-right text-xs font-medium text-green">{message}</p>}
+      {message && <p className="text-right text-xs font-medium text-green">{message} • {new Date().toLocaleTimeString()}</p>}
       {error && <p className="text-right text-xs font-medium text-red">{error}</p>}
 
       {editOpen &&
@@ -377,7 +374,7 @@ export function UserCrudActions({ user }: { user: ManageUser }) {
                     Edit User
                   </h2>
                   <p className="mt-1 font-medium text-dark-5 dark:text-dark-6">
-                    Update profile, role, status, or set a new password.
+                    Update profile information, college, department, or set a new password.
                   </p>
                 </div>
                 <button
@@ -402,31 +399,24 @@ export function UserCrudActions({ user }: { user: ManageUser }) {
                   <Field label="School ID" value={form.schoolId} error={fieldErrors.schoolId} onChange={(value) => setForm((current) => ({ ...current, schoolId: value }))} />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <SelectField
-                    label="Role"
-                    value={form.role}
-                    error={fieldErrors.role}
-                    options={[
-                      ["alumni", "Alumni"],
-                      ["staff", "Staff"],
-                      ["admin", "Admin"],
-                    ]}
-                    onChange={(value) => setForm((current) => ({ ...current, role: value }))}
+                    label="College"
+                    value={form.alumniCollege}
+                    error={fieldErrors.alumniCollege}
+                    options={collegeOptions.map((college) => [college, college])}
+                    onChange={(value) => setForm((current) => ({ ...current, alumniCollege: value }))}
                   />
                   <SelectField
-                    label="Status"
-                    value={form.accountStatus}
-                    error={fieldErrors.accountStatus}
-                    options={[
-                      ["active", "Active"],
-                      ["pending", "Pending"],
-                      ["inactive", "Inactive"],
-                    ]}
-                    onChange={(value) => setForm((current) => ({ ...current, accountStatus: value }))}
+                    label="Department"
+                    value={form.alumniDepartment}
+                    error={fieldErrors.alumniDepartment}
+                    options={departmentOptions.map((dept) => [dept, dept])}
+                    onChange={(value) => setForm((current) => ({ ...current, alumniDepartment: value }))}
                   />
-                  <Field label="New Password" type="password" value={form.password} error={fieldErrors.password} onChange={(value) => setForm((current) => ({ ...current, password: value }))} />
                 </div>
+
+                <Field label="New Password" type="password" value={form.password} error={fieldErrors.password} onChange={(value) => setForm((current) => ({ ...current, password: value }))} />
 
                 {error && (
                   <p className="rounded-lg bg-red/[0.08] px-4 py-3 text-sm font-medium text-red">

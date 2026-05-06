@@ -25,7 +25,10 @@ type AccountSettingsResponse = {
 type ProfileForm = Pick<
   AccountSettings,
   "fullName" | "email" | "username" | "phoneNumber" | "bio"
->;
+> & {
+  companyName: string;
+  jobTitle: string;
+};
 
 const emptyProfileForm: ProfileForm = {
   fullName: "",
@@ -33,6 +36,8 @@ const emptyProfileForm: ProfileForm = {
   username: "",
   phoneNumber: "",
   bio: "",
+  companyName: "",
+  jobTitle: "",
 };
 
 export default function ProfilePage() {
@@ -422,21 +427,45 @@ export default function ProfilePage() {
                           error={errors.phoneNumber}
                         />
                       </div>
-                      <Field
-                        label="Email Address"
-                        type="email"
-                        name="email"
-                        value={form.email}
-                        onChange={setForm}
-                        error={errors.email}
-                      />
-                      <Field
-                        label="Username"
-                        name="username"
-                        value={form.username}
-                        onChange={setForm}
-                        error={errors.username}
-                      />
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="sm:col-span-2">
+                          <Field
+                            label="Email Address"
+                            type="email"
+                            name="email"
+                            value={form.email}
+                            onChange={setForm}
+                            error={errors.email}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="sm:col-span-2">
+                          <Field
+                            label="Username"
+                            name="username"
+                            value={form.username}
+                            onChange={setForm}
+                            error={errors.username}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field
+                          label="Employer"
+                          name="companyName"
+                          value={form.companyName}
+                          onChange={setForm}
+                          error={errors.companyName}
+                        />
+                        <Field
+                          label="Job Title"
+                          name="jobTitle"
+                          value={form.jobTitle}
+                          onChange={setForm}
+                          error={errors.jobTitle}
+                        />
+                      </div>
                       <TextAreaField
                         label="Bio"
                         name="bio"
@@ -699,6 +728,8 @@ function toProfileForm(account: AccountSettings): ProfileForm {
     username: account.username ?? "",
     phoneNumber: account.phoneNumber ?? "",
     bio: account.bio ?? "",
+    companyName: account.alumni?.companyName ?? "",
+    jobTitle: account.alumni?.jobTitle ?? "",
   };
 }
 

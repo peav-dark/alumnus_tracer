@@ -39,9 +39,14 @@ export function PublicHeader({
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [publicSignupEnabled, setPublicSignupEnabled] = useState(true);
+  const [hasMounted, setHasMounted] = useState(false);
   const { isLoggedIn, isLoading, user } = authState;
   const pathname = usePathname();
   const isSurveyActive = pathname === "/survey";
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -116,7 +121,9 @@ export function PublicHeader({
         </nav>
 
         <div className="flex items-center gap-3">
-          {isLoggedIn && user ? (
+          {!hasMounted || isLoading ? (
+            <div className="hidden h-10 w-[180px] rounded-md bg-white/10 ring-1 ring-white/10 sm:block" />
+          ) : isLoggedIn && user ? (
             <div className="hidden items-center gap-2 lg:flex">
               <Link
                 href="/survey"

@@ -47,6 +47,12 @@ class AccountSettingsService
         $bio = array_key_exists('bio', $payload)
             ? $this->normalizeNullableString($payload['bio'])
             : $user->getBio();
+        $companyName = array_key_exists('companyName', $payload)
+            ? $this->normalizeNullableString($payload['companyName'])
+            : $user->getAlumni()?->getCompanyName();
+        $jobTitle = array_key_exists('jobTitle', $payload)
+            ? $this->normalizeNullableString($payload['jobTitle'])
+            : $user->getAlumni()?->getJobTitle();
         $errors = [];
 
         if ($fullName === '') {
@@ -89,6 +95,14 @@ class AccountSettingsService
             $errors['bio'] = 'Bio must be 1000 characters or fewer.';
         }
 
+        if ($companyName !== null && strlen($companyName) > 255) {
+            $errors['companyName'] = 'Employer must be 255 characters or fewer.';
+        }
+
+        if ($jobTitle !== null && strlen($jobTitle) > 255) {
+            $errors['jobTitle'] = 'Job title must be 255 characters or fewer.';
+        }
+
         if ($errors !== []) {
             return ['errors' => $errors];
         }
@@ -100,6 +114,14 @@ class AccountSettingsService
             ->setUsername($username)
             ->setPhoneNumber($phoneNumber)
             ->setBio($bio);
+
+        $alumni = $user->getAlumni();
+
+        if ($alumni instanceof Alumni) {
+            $alumni
+                ->setCompanyName($companyName)
+                ->setJobTitle($jobTitle);
+        }
 
         $this->entityManager->flush();
 
